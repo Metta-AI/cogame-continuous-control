@@ -247,7 +247,8 @@ READ THOSE NUMBERS. They are the whole game:
   airborne_ticks near 36    -> you are launching, not running.
   distance_m near zero with -> you are marching on the spot; add lean.
     high strides
-  pitch heading toward the fall limit -> brake for one turn, then resume.
+  pitch heading toward the fall limit -> cut power and shorten the stride.
+    A brake will NOT save you: it switches the servo off.
 
 REPLY FORMAT
 Reply with ONE JSON object and NOTHING else. Your reply MUST begin with the
