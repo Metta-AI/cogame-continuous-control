@@ -338,6 +338,34 @@ jobs:
             --strict-text-bounds
 
       # ---------------------------------------------------------------
+      # `CcChrome.frame` and `CcChrome.event` CATCH everything they throw --
+      # they must, because a chrome error that escapes latches
+      # static_replay.js into `failed` mid-replay (the cogball 0.1.4 scar) --
+      # and then log it. A caught error is therefore invisible to every gate
+      # above: the smoke stays green while nothing the block draws renders.
+      # It happened: `ccFeed` handed the inherited `pushFeed(row: Node)` a
+      # string, and twelve `TypeError ... at Object.pushFeed` lines sat in
+      # this artifact's own console_tail with feed_lines: 0, green.
+      # The prefix is the block's, so this reads the smoke's recorded console
+      # (its last 30 lines) and fails the job on any of them.
+      # ---------------------------------------------------------------
+      - name: The chrome swallowed no error while the replay played
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, sys
+          tail = json.load(open("viewer-smoke.json")).get("console_tail") or []
+          bad = [line for line in tail if "continuous-control chrome" in line]
+          if bad:
+              print("::error::CcChrome caught and swallowed %d error(s) while the "
+                    "replay played; nothing it draws rendered after them" % len(bad))
+              for line in bad:
+                  print("  " + line)
+              sys.exit(1)
+          print("chrome errors in the smoke's console tail: 0 of %d lines" % len(tail))
+          PY
+
+      # ---------------------------------------------------------------
       # docker_smoke.sh runs with NO ANTHROPIC_API_KEY, so the seat plays
       # scripted and the smoke replay carries NO `say` at all. Nothing above
       # would otherwise exercise the feed's narration path or the endcard

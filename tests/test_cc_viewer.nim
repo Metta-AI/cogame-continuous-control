@@ -75,7 +75,10 @@ suite "chrome provenance":
       let signature = originalPage[originalPage.find("function pushFeed(") ..
         originalPage.find(")", originalPage.find("function pushFeed("))]
       check signature in page
-    check "ctx.pushFeed(text, cls" in page
+    ## and the CALL matches that signature: pushFeed takes a NODE, so the
+    ## block builds the row and passes it. Passing the text instead threw
+    ## `insertBefore: parameter 1 is not of type 'Node'` on every feed line.
+    check "ctx.pushFeed(row)" in page
 
   test "43. no game-block identifier shadows a chrome alias":
     ## `var markBeat = C.markBeat` hoists over a same-named function

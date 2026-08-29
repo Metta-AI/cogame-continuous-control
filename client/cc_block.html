@@ -591,8 +591,21 @@
   // ---- the match feed ----------------------------------------------------
   // Plain language, never internal notation. Routed through the inherited
   // pushFeed so the feed queue, its cap and its styling stay the starter's.
+  //
+  // The inherited pushFeed takes a NODE — it does `feedEl.insertBefore(row,
+  // …)` and then sets `row.style.animationDuration` — so the row is built
+  // HERE, exactly as the starter's own appended block builds it
+  // (coworld-ctf's `feedRow`). Handing it a string throws
+  // `insertBefore: parameter 1 is not of type 'Node'` inside CcChrome.event's
+  // catch, and then NO feed line and no banner queued behind it ever renders.
+  // `textContent`, never innerHTML: the `say` line carries model-authored
+  // text straight from the replay.
   function ccFeed(text, cls) {
-    if (ctx && ctx.pushFeed) ctx.pushFeed(text, cls || '');
+    if (!ctx || !ctx.pushFeed) return;
+    var row = document.createElement('div');
+    row.className = 'feed-row' + (cls ? ' ' + cls : '');
+    row.textContent = text;
+    ctx.pushFeed(row);
   }
 
   function ccOnEvent(e, s) {
@@ -603,7 +616,8 @@
         ccFeed('STAGE ' + (e.i + 1) + ' OF ' + e.of + ' \u2014 ' +
           (MORPH[e.morph] || '') + ', 60 M OF TRACK');
         if (ctx && ctx.banner) {
-          ctx.banner('STAGE ' + (e.i + 1) + ' \u2014 ' + (MORPH[e.morph] || ''));
+          ctx.banner('STAGE ' + (e.i + 1) + ' \u2014 ' + (MORPH[e.morph] || ''),
+            '');
         }
         return true;
       case 'order':
@@ -630,7 +644,7 @@
         if (ctx && ctx.banner) {
           ctx.banner('DOWN \u2014 ' + (MORPH[g.stage.morph] || '') + ' ' +
             String(e.why).toUpperCase() + ' AT ' +
-            (e.x / 1000000).toFixed(1) + ' M');
+            (e.x / 1000000).toFixed(1) + ' M', '');
         }
         return true;
       case 'stageend':
