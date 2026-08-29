@@ -362,7 +362,7 @@ proc runGame(unused: RuntimeConfig) {.gcsafe.} =
         while gameSim.tick < turnEndTick and gameSim.phase != phGameOver:
           let stageBefore = gameSim.stageIndex
           gameSim.stepTick()
-          writer.writeHash(gameSim.gameHashValue)
+          writer.writeHash(gameSim.tick, gameSim.gameHashValue)
           if config.stateKeyframeTicks > 0 and
               gameSim.tick mod config.stateKeyframeTicks == 0:
             writer.writeKeyframe(gameSim.tick, gameSim.keyframeWords())

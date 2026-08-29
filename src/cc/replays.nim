@@ -232,7 +232,17 @@ proc writeStop*(writer: ReplayWriter, stop: StopPayload) =
   ## call site can write an unbounded one.
   writer.body.addText(stop.detail.truncateRunes(MaxStopDetailRunes))
 
-proc writeHash*(writer: ReplayWriter, value: uint64) =
+proc writeHash*(writer: ReplayWriter, tick: int, value: uint64) =
+  ## One hash per STEPPED TICK. The array stays positional on the wire — the
+  ## tick is the index, and playback consumes one entry per tick it re-steps —
+  ## but the tick is passed and checked here, as design.md:428 writes it. A
+  ## recorder that ever appended a hash without advancing a tick would
+  ## misalign the whole chain and report the mismatch at some later, innocent
+  ## tick instead of at the offending one; this turns that into one loud error
+  ## at the offending write.
+  if writer.hashes.len + 1 != tick:
+    raise newException(CcError, "replay hash for tick " & $tick &
+      " written at hash index " & $writer.hashes.len)
   writer.hashes.add(value)
 
 proc bytes*(writer: ReplayWriter): string =

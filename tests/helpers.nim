@@ -75,7 +75,7 @@ proc runScriptedEpisode*(config: GameConfig, kind = blTrotter,
       while sim.tick < turnEnd and sim.phase != phGameOver:
         let stageBefore = sim.stageIndex
         sim.stepTick()
-        writer.writeHash(sim.gameHashValue)
+        writer.writeHash(sim.tick, sim.gameHashValue)
         if config.stateKeyframeTicks > 0 and
             sim.tick mod config.stateKeyframeTicks == 0:
           writer.writeKeyframe(sim.tick, sim.keyframeWords())

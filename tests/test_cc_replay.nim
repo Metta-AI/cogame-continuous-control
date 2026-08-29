@@ -170,7 +170,7 @@ suite "record, then re-derive":
     sim.beginTurn(order)
     for _ in 0 ..< 60:
       sim.stepTick()
-      writer.writeHash(sim.gameHashValue)
+      writer.writeHash(sim.tick, sim.gameHashValue)
     sim.settle(endComplete, erLadderComplete)
     sim.stopDetail = repeat(emoji, MaxStopDetailRunes)
     ## The stop record's `detail` is the captured-error path: it is fed OVER
