@@ -138,7 +138,10 @@ and every joint constraint is a 2x2 linear solve. `isqrtQ16` exists in
     note's own record vocabulary requires and which is what makes the replay
     explain each decision; it is bounded at `MaxOrderRecordRunes = 6000` per
     record and the view is dropped rather than truncated if a record exceeds
-    it. The CI smoke's own figure is 132 082 B for a full three-stage episode.
+    it. The CI smoke's own figure is about 132 000 B for a full three-stage
+    episode (131 999 B in run 33249877981) — the exact byte count moves with
+    every prompt and order string the episode happens to record, so it is
+    quoted to the kilobyte, not to the byte.
 16. **`tools/ci/viewer_smoke.mjs` carries one selector this repo added.** The
     harness is otherwise the builder template verbatim; its DOM feed probe read
     `#feed, .feed, #log, [id$="-feed"]`, and this lineage's feed is coworld-ctf's
