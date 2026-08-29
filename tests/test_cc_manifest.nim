@@ -128,7 +128,17 @@ suite "manifest pins":
     ## `game.replay_viewer`, no top-level `version`, no `game.display_name`,
     ## `game.owner` required, no runner-managed `tokens`) plus the image
     ## placeholder's compose-derived name.
-    check manifest["game"]["image"].getStr() == "{{CONTINUOUS_CONTROL_IMAGE}}"
+    ## The image lives INSIDE `game.runnable`: `bundle.py`'s
+    ## `_load_template_manifest` reads `runnable["image"]` and never looks at
+    ## `game.image`, so a top-level one is a `KeyError` (0.1.0, run
+    ## 33253409378). And the game runnable declares no `resources.limits` at
+    ## all: `/coworlds/upload` answers HTTP 400 "game runnable may not declare
+    ## a cpu limit; only player pods honor one" (0.1.1, run 33253738053), and
+    ## `CoworldResourceLimits` forbids everything but `cpu` anyway.
+    check manifest["game"]["runnable"]["image"].getStr() ==
+      "{{CONTINUOUS_CONTROL_IMAGE}}"
+    check not manifest["game"].hasKey("image")
+    check not manifest["game"]["runnable"]["resources"].hasKey("limits")
     let compose = readRepoFile("compose.yaml")
     check "continuous-control:" in compose
     check "image: coworld-continuous-control:latest" in compose
