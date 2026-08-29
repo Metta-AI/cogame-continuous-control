@@ -12,9 +12,9 @@
     "name": "continuous-control",
     "owner": "daveey@softmax.com",
     "description": "One cog, three planar machines, sixty metres of track, three times. Every 1.5 seconds the cog names a gait and tunes five numbers; a deterministic pattern generator and PD servos run that order on every joint 240 times a second. The score is the return: metres covered, plus a bonus per second upright, minus the cost of slamming the actuators.",
-    "image": "{{CONTINUOUS_CONTROL_IMAGE}}",
     "runnable": {
       "type": "game",
+      "image": "{{CONTINUOUS_CONTROL_IMAGE}}",
       "run": [
         "/bin/continuous-control"
       ],
@@ -27,8 +27,7 @@
           "memory": "512Mi"
         },
         "limits": {
-          "cpu": "2",
-          "memory": "2Gi"
+          "cpu": "2"
         }
       }
     },
