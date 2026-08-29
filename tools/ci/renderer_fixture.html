@@ -37,12 +37,25 @@
   'use strict';
   var WIDTHS = [[360, 203], [640, 360], [1280, 720]];
 
-  // Exactly 140 runes: the server's own MaxSayRunes, so the feed row is laid
-  // out at its true worst case rather than at whatever a scripted episode
-  // happened to produce.
-  var SAY = ('lengthening the stride now the cheetah is up to speed; the front '
-    + 'knee is pegged at full torque so power comes down six next turn!!!!!');
-  SAY = Array.from(SAY).slice(0, 140).join('');
+  // Exactly 140 runes: the server's own MaxSayRunes (src/cc/sim_types.nim:37),
+  // so the feed row is laid out at its true worst case rather than at whatever
+  // a scripted episode happened to produce.
+  var SAY = ('lengthening the stride now that the cheetah is up to speed; the '
+    + 'front knee is still pegged at full torque, so power comes down six '
+    + 'next turn');
+  var SAY_RUNES = Array.from(SAY).length;
+  // The fixture asserts its OWN strings are still full-length: one quietly
+  // shortened remark leaves it passing while testing nothing (acceptance
+  // checklist item 15), which is exactly what the previous 133-rune literal
+  // did behind a `slice(0, 140)` that could never bite. Fail loudly here,
+  // before a single iframe is created, and the smoke reads the reason off
+  // data-replay-error.
+  if (SAY_RUNES !== 140) {
+    document.documentElement.setAttribute('data-replay-error',
+      'the fixture SAY is ' + SAY_RUNES + ' runes, not the 140 MaxSayRunes '
+      + 'this fixture exists to lay out');
+    throw new Error('fixture SAY is ' + SAY_RUNES + ' runes, not 140');
+  }
 
   function link(i, name, x, y, a, hl, r) {
     return { i: i, name: name, x: x, y: y, a: a, hl: hl, r: r };
@@ -183,6 +196,15 @@
         }
         try {
           var playing = state('playing');
+          // The cap is published by the engine itself
+          // (src/cc/wire_constants.nim, served as wire_constants.js), so a
+          // MaxSayRunes change this fixture did not follow is red here rather
+          // than quietly laying the row out at the wrong worst case.
+          var cap = w.CC_WIRE && w.CC_WIRE.maxSayRunes;
+          if (cap && cap !== SAY_RUNES) {
+            failed = 'the fixture SAY is ' + SAY_RUNES + ' runes but the page '
+              + 'publishes maxSayRunes ' + cap;
+          }
           chrome.frame(playing, null, false);
           for (var i = 0; i < EVENTS.length; i++) {
             chrome.event(EVENTS[i], playing, null);
