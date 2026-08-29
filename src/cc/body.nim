@@ -130,7 +130,14 @@ proc buildHopper(): MorphSpec =
   result.rootAngle = 0
   result.terminates = true
   result.lowY = mm(700)
-  result.highY = mm(4000)
+  ## The design note gives the hopper EXACTLY TWO fall conditions — torso
+  ## below 0.70 m, or |pitch| past 20 degrees — unlike the walker, whose
+  ## 0.80 .. 2.00 m band the note states. `highY` is therefore set to the
+  ## sim's own world-box ceiling (`GuardMaxYQ16`, 20 m): it adds no fall
+  ## condition inside the reachable world, and only means a torso that
+  ## somehow escapes the box ends its stage as a fall rather than faulting
+  ## the whole episode.
+  result.highY = mm(20_000)
   result.maxPitch = degQ16(20)
   result.distNum = 2
   result.distDen = 1
