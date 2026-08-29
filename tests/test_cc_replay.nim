@@ -173,8 +173,11 @@ suite "record, then re-derive":
       writer.writeHash(sim.gameHashValue)
     sim.settle(endComplete, erLadderComplete)
     sim.stopDetail = repeat(emoji, MaxStopDetailRunes)
+    ## The stop record's `detail` is the captured-error path: it is fed OVER
+    ## its cap here, because the server builds it from an exception message
+    ## whose length nothing upstream bounds.
     writer.writeStop(StopPayload(tick: sim.tick, reason: endFault,
-      endRule: erFault, detail: repeat(emoji, MaxStopDetailRunes)))
+      endRule: erFault, detail: repeat(emoji, MaxStopDetailRunes + 37)))
     writer.writeChat(sim.tick, resultRecord(sim))
     let path = getTempDir() / "cc-summary-test.replay"
     writeFile(path, writer.bytes())
@@ -191,6 +194,11 @@ suite "record, then re-derive":
     check summary["gameVersion"].getStr() == GameVersion
     check summary["orders"][0]["say"].getStr().runeLen == MaxSayRunes
     check summary["stop"]["endRule"].getStr() == "fault"
+    ## capped on a RUNE boundary: 200 whole 4-byte emoji, never 800 bytes of
+    ## a half-written one
+    check summary["stop"]["detail"].getStr().runeLen == MaxStopDetailRunes
+    check summary["stop"]["detail"].getStr() == repeat(emoji,
+      MaxStopDetailRunes)
     check summary["tickCount"].getInt() == 60
 
   test "38. every committed fixture carries the current GameVersion":

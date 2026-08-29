@@ -225,7 +225,12 @@ proc writeStop*(writer: ReplayWriter, stop: StopPayload) =
   writer.body.addU32(stop.tick)
   writer.body.addText($stop.reason)
   writer.body.addText($stop.endRule)
-  writer.body.addText(stop.detail)
+  ## `detail` is the one string that reaches the replay from a CAPTURED
+  ## EXCEPTION (`server.nim`'s fault and wall-clock branches, and the test
+  ## harness's forced stops), so it is capped HERE — on rune boundaries, at
+  ## the same 200 runes `results.stopDetail` uses (`sim.settle`) — and no
+  ## call site can write an unbounded one.
+  writer.body.addText(stop.detail.truncateRunes(MaxStopDetailRunes))
 
 proc writeHash*(writer: ReplayWriter, value: uint64) =
   writer.hashes.add(value)
