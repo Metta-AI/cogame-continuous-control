@@ -182,15 +182,32 @@
     frame.addEventListener('load', function () {
       // The bundle boots its wasm runtime asynchronously; poll for the chrome
       // hook rather than racing it.
+      //
+      // AND for the page's FIRST REAL FRAME. `CcChrome` is defined the moment
+      // the page's scripts run, but the game block's `ctx` — the inherited
+      // chrome's pushFeed/banner — is only handed to it by the page itself,
+      // on `CcChrome.frame(s, PB_CTX, jumped)`. Driving the block before that
+      // leaves `ctx` null, and every feed line and banner is dropped on the
+      // floor by `ccFeed`'s own guard: the fixture would measure a page that
+      // cannot talk and pass. `#cc-ribbon` is created by the block's
+      // `ccEnsureNodes()` on that first frame and by nothing else, so it is
+      // the signal that the page has driven the chrome with its own context.
       var tries = 0;
       var timer = setInterval(function () {
         tries++;
         var w = frame.contentWindow;
         var chrome = w && w.CcChrome;
-        if (!chrome && tries < 120) return;
+        var drove = chrome && w.document.getElementById('cc-ribbon');
+        if (!drove && tries < 200) return;
         clearInterval(timer);
         if (!chrome) {
           failed = 'CcChrome never appeared at ' + size[0] + 'px';
+          finish();
+          return;
+        }
+        if (!drove) {
+          failed = 'the page never drove CcChrome with its own context at '
+            + size[0] + 'px (no #cc-ribbon after 20 s)';
           finish();
           return;
         }
@@ -206,14 +223,63 @@
               + 'publishes maxSayRunes ' + cap;
           }
           chrome.frame(playing, null, false);
+          var doc = w.document;
+          var sayBox = null, sayText = '';
           for (var i = 0; i < EVENTS.length; i++) {
             chrome.event(EVENTS[i], playing, null);
+            if (EVENTS[i].k === 'say') {
+              // Measured HERE, while the say row is still the newest: the
+              // inherited feed keeps only MAX_FEED = 4 rows, and the seven
+              // events after this one push it out.
+              var row = doc.querySelector('#killfeed .feed-row.say');
+              if (row) {
+                sayBox = row.getBoundingClientRect();
+                sayText = row.textContent || '';
+              }
+            }
+          }
+          // THE MODEL'S OWN STRING, MEASURED. `say` is the one LLM-authored
+          // string this viewer draws and the canvas text hook cannot see it
+          // (the whole feed is DOM), so its box is checked here at every
+          // width. A missing row is the failure this file exists to catch:
+          // handing the inherited pushFeed a string threw inside CcChrome's
+          // catch and NOTHING rendered, at every width, entirely silently.
+          if (!sayBox) {
+            failed = 'no `.feed-row.say` rendered at ' + size[0] + 'px: the '
+              + '140-rune say never reached the feed';
+          } else {
+            if (Array.from(sayText).length < SAY_RUNES) {
+              failed = 'the say row carries ' + Array.from(sayText).length
+                + ' runes, fewer than the ' + SAY_RUNES + ' fed to it, at '
+                + size[0] + 'px';
+            }
+            if (sayBox.width <= 0 || sayBox.height <= 0) {
+              failed = 'the say feed row has no box at ' + size[0] + 'px';
+            }
+            // Inside the FRAME, not merely inside the feed's own column: the
+            // row is `white-space: nowrap; max-width: none` and grows leftward
+            // under `html { overflow: hidden }`, so a row too wide for the
+            // frame is clipped rather than wrapped or ellipsized.
+            if (sayBox.left < -1 || sayBox.top < -1
+                || sayBox.right > w.innerWidth + 1
+                || sayBox.bottom > w.innerHeight + 1) {
+              failed = 'the say feed row is clipped by the frame at '
+                + size[0] + 'px: [' + Math.round(sayBox.left) + ','
+                + Math.round(sayBox.top) + ',' + Math.round(sayBox.right) + ','
+                + Math.round(sayBox.bottom) + '] in ' + w.innerWidth + 'x'
+                + w.innerHeight;
+            }
+          }
+          // The two banners ride the same call path the say row does: in
+          // `stagestart` and `fall` the feed line is pushed BEFORE
+          // `ctx.banner(...)`, so a throw in the feed took the banner with it.
+          if (!doc.querySelector('#bannerlane .banner-chip')) {
+            failed = 'no banner chip rendered at ' + size[0] + 'px';
           }
           chrome.frame(state('gameover'), null, false);
           // Every element that carries a cap string must have been laid out
           // with room: an empty or zero-width box at 360 px is the failure
           // this fixture exists to catch.
-          var doc = w.document;
           ['cc-ribbon', 'cc-pips', 'cc-strip', 'fpv-name', 'clock-caption']
             .forEach(function (id) {
               var el = doc.getElementById(id);
