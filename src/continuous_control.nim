@@ -43,13 +43,13 @@ when isMainModule:
       quit("continuous-control: COGAME_CONFIG_URI is required " &
         "(no game config given)", 2)
     var config = defaultConfig()
+    if not seedPinned(runtimeConfig.config):
+      config.seed = randomSeed()
+      echo "continuous-control: seed not pinned; randomized"
     try:
       config.update(parseJson(runtimeConfig.config))
     except CatchableError as error:
       quit("continuous-control: invalid game config: " & error.msg, 2)
-    if not seedPinned(runtimeConfig.config):
-      config.seed = randomSeed()
-      echo "continuous-control: seed not pinned; randomized"
     try:
       config.validate()
     except CatchableError as error:
