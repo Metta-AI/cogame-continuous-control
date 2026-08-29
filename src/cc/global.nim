@@ -237,11 +237,13 @@ proc bakeBed(): Image =
   for y in 0 ..< MapHeight:
     for x in 0 ..< w:
       if y < GroundRow:
-        ## sky: a warm dark gradient, so the horizon band reads against it
+        ## sky: a warm gradient that BRIGHTENS toward the ground, so the
+        ## machine has something to read against in the band it actually
+        ## occupies (the top 3 m of the frame is empty air).
         let t = float(y) / float(GroundRow)
         result[x, y] = rgba(
-          uint8(22 + int(26.0 * t)), uint8(17 + int(20.0 * t)),
-          uint8(13 + int(16.0 * t)), 255)
+          uint8(18 + int(58.0 * t * t)), uint8(14 + int(42.0 * t * t)),
+          uint8(11 + int(32.0 * t * t)), 255)
       else:
         let c = floorTile[x mod floorTile.width,
                           (y - GroundRow) mod floorTile.height].rgba()
@@ -335,14 +337,17 @@ proc bakeLinkChip(morph: Morph, link: int, glow: bool): Image =
     c = float(size) / 2.0
     sample = plating[(link * 13 + 7) mod plating.width,
                      (link * 29 + 11) mod plating.height].rgba()
-    baseR = 60 + int(sample.r) div 3
-    baseG = 24 + int(sample.g) div 5
-    baseB = 20 + int(sample.b) div 5
-  result.disc(c, c, float(radiusPx) + 1.0, 24, 16, 12, 220)
+    ## The plating sample TINTS the chip; it does not set its brightness. A
+    ## chip that inherits the master's own dark pixels reads as a black smear
+    ## against a night bed, which is what the first hosted screenshot showed.
+    baseR = clamp(150 + int(sample.r) div 5, 120, 235)
+    baseG = clamp(46 + int(sample.g) div 6, 34, 120)
+    baseB = clamp(38 + int(sample.b) div 6, 28, 110)
+  result.disc(c, c, float(radiusPx) + 1.5, 18, 12, 9, 235)
   result.disc(c, c, float(radiusPx), baseR, baseG, baseB, 255)
-  result.disc(c - float(radiusPx) * 0.28, c - float(radiusPx) * 0.28,
-    float(radiusPx) * 0.5, min(255, baseR + 60), min(255, baseG + 40),
-    min(255, baseB + 34), 190)
+  result.disc(c - float(radiusPx) * 0.30, c - float(radiusPx) * 0.30,
+    float(radiusPx) * 0.52, min(255, baseR + 70), min(255, baseG + 56),
+    min(255, baseB + 50), 210)
   if glow:
     result.disc(c, c, float(radiusPx) * 0.62, 232, 163, 61, 235)
 
