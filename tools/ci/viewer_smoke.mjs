@@ -426,8 +426,11 @@ const READOUT_SCRIPT = `(() => {
   // shells use #clock/#scorebug/#feed/#scrub; the moba/emscripten lineage
   // prefixes its game chrome (e.g. #derk-clock) and names its scrubber
   // #seek (2026-08-28, cogame-derks-gym check 8: loaded:true but every
-  // readout null because only the parley ids were probed).
-  const feed = document.querySelector('#feed, .feed, #log, [id$="-feed"]');
+  // readout null because only the parley ids were probed). The coworld-ctf
+  // lineage names its feed #killfeed, which matches none of the four below
+  // (2026-08-29, cogame-continuous-control r2-F4: feed_lines was
+  // structurally 0 for that whole lineage whatever the feed did).
+  const feed = document.querySelector('#feed, .feed, #log, #killfeed, [id$="-feed"]');
   return {
     clock: text('#clock, [id$="-clock"]'),
     tick: text("#tick-clock, #tick, .tick-clock, #tickinfo"),

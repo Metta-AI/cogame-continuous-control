@@ -139,6 +139,14 @@ and every joint constraint is a 2x2 linear solve. `isqrtQ16` exists in
     explain each decision; it is bounded at `MaxOrderRecordRunes = 6000` per
     record and the view is dropped rather than truncated if a record exceeds
     it. The CI smoke's own figure is 132 082 B for a full three-stage episode.
+16. **`tools/ci/viewer_smoke.mjs` carries one selector this repo added.** The
+    harness is otherwise the builder template verbatim; its DOM feed probe read
+    `#feed, .feed, #log, [id$="-feed"]`, and this lineage's feed is coworld-ctf's
+    `<div id="killfeed">`, which matches none of them — so `feed_lines` was
+    structurally 0 for this viewer whatever the feed did, and it read 0 in the
+    head run's artifacts while every feed line was in fact throwing. `#killfeed`
+    is now in the list. The number is reported, never gated: feed rows expire on
+    a dwell timer, so a 0 between beats is legitimate.
 
 ## The committed morphology table
 
