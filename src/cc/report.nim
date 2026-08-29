@@ -95,16 +95,20 @@ proc bodyJson*(sim: SimServer): JsonNode =
       "x_m": m2(sim.body.links[idx].x),
       "slip_m_s": m2(sim.body.footSlip(sim.spec, f))})
   let torso = sim.body.links[0]
+  ## The per-joint array is `joints` — the key the design note's own
+  ## observation example iterates. The note also shows a scalar `"joints": 6`
+  ## in the same object, which is not constructible JSON; the COUNT keeps a key
+  ## of its own so both readings are available.
   %*{
     "links": sim.spec.linkCount,
-    "joints": sim.spec.jointCount,
+    "joint_count": sim.spec.jointCount,
     "torso": {
       "height_m": m2(torso.y),
       "pitch_deg": degrees(sim.body.torsoPitch(sim.spec)),
       "vx_m_s": m2(torso.vx),
       "vy_m_s": m2(torso.vy),
       "spin_dps": dps(torso.w)},
-    "joints_detail": joints,
+    "joints": joints,
     "feet": feet}
 
 proc ladderJson*(sim: SimServer): JsonNode =

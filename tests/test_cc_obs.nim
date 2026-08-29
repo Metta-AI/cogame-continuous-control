@@ -24,9 +24,9 @@ suite "the seat's observation":
       let view = sim.observationJson(0)
       let body = view["body"]
       ## `joints` and `feet` always have exactly the morphology's counts
-      if body["joints"].getInt() != sim.spec.jointCount: inc mismatches
+      if body["joint_count"].getInt() != sim.spec.jointCount: inc mismatches
       if body["links"].getInt() != sim.spec.linkCount: inc mismatches
-      if body["joints_detail"].len != sim.spec.jointCount: inc mismatches
+      if body["joints"].len != sim.spec.jointCount: inc mismatches
       if body["feet"].len != sim.spec.footCount: inc mismatches
       ## `gaits` is always the six names, in that order
       var names: seq[string] = @[]
@@ -45,7 +45,7 @@ suite "the seat's observation":
       if abs(torso["vx_m_s"].getFloat() - m2(sim.body.links[0].vx)) > 0.005:
         inc mismatches
       for j in 0 ..< sim.spec.jointCount:
-        let row = body["joints_detail"][j]
+        let row = body["joints"][j]
         if row["name"].getStr() != sim.spec.joints[j].name: inc mismatches
         if abs(row["angle_deg"].getFloat() -
             degrees(sim.body.jointCoord(sim.spec, j))) > 0.005:
@@ -79,7 +79,7 @@ suite "the seat's observation":
         if sim.phase != phPlaying: break
       let view = sim.observationJson(0)
       for j in 0 ..< sim.spec.jointCount:
-        let row = view["body"]["joints_detail"][j]
+        let row = view["body"]["joints"][j]
         let pct = row["torque_pct"].getInt()
         ## `torque_pct` is |tau| * 100 div tauCap at the tick's FIRST substep
         let cap = max(1'i64, sim.lastForces.tauCap[j])
