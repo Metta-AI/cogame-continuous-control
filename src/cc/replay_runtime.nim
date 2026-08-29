@@ -275,7 +275,8 @@ proc scanReplay*(player: var ReplayPlayer) =
       elif outcome == "lined":
         player.beats.add(Beat(tick: endTick, kind: "stageend",
           label: "LINED OUT — 60 M IN " &
-            metresText(int64(ticksRun[i].getInt() * 1_000_000 div TargetFps)) &
+            metresText((int64(ticksRun[i].getInt()) * 1_000_000'i64) div
+              int64(TargetFps)) &
             " S"))
       else:
         player.beats.add(Beat(tick: endTick, kind: "stageend",

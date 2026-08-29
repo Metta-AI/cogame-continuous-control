@@ -91,12 +91,20 @@ proc addU16(bytes: var string, value: int) =
   bytes.add(char(value and 0xFF))
   bytes.add(char((value shr 8) and 0xFF))
 
-proc addU32(bytes: var string, value: int) =
+proc addRawU32(bytes: var string, value: uint32) =
   for shift in [0, 8, 16, 24]:
-    bytes.add(char((value shr shift) and 0xFF))
+    bytes.add(char(int((value shr shift) and 0xFF'u32)))
+
+proc addU32(bytes: var string, value: int) =
+  ## Lengths and tick counts only, all far under 2^31.
+  bytes.addRawU32(uint32(value))
 
 proc addI32(bytes: var string, value: int32) =
-  bytes.addU32(int(cast[uint32](value)))
+  ## A SIGNED word goes out through `uint32`, never through `int`: Nim's `int`
+  ## is 32 bits under `--cpu:wasm32`, so a negative Q16 word round-tripped as
+  ## an `int` traps with "value out of range" the moment the viewer parses it
+  ## (CI run 33247466068).
+  bytes.addRawU32(cast[uint32](value))
 
 proc addU64(bytes: var string, value: uint64) =
   for shift in 0 ..< 8:
@@ -125,16 +133,23 @@ proc readU16(cursor: var Cursor): int =
     (int(uint8(cursor.data[cursor.offset + 1])) shl 8)
   cursor.offset += 2
 
-proc readU32(cursor: var Cursor): int =
+proc readRawU32(cursor: var Cursor): uint32 =
   cursor.need(4)
-  var value = 0'u32
   for shift in [0, 8, 16, 24]:
-    value = value or (uint32(uint8(cursor.data[cursor.offset])) shl shift)
+    result = result or (uint32(uint8(cursor.data[cursor.offset])) shl shift)
     inc cursor.offset
-  int(value)
+
+proc readU32(cursor: var Cursor): int =
+  ## Lengths and tick counts only. A file claiming a length past 2^31 is
+  ## refused here rather than trapping inside the wasm runtime.
+  let raw = cursor.readRawU32()
+  if raw > uint32(high(int32)):
+    raise newException(CcError, "replay length field is implausible")
+  int(raw)
 
 proc readI32(cursor: var Cursor): int32 =
-  cast[int32](uint32(cursor.readU32()))
+  ## See `addI32`: the SIGNED word never passes through `int`.
+  cast[int32](cursor.readRawU32())
 
 proc readU64(cursor: var Cursor): uint64 =
   cursor.need(8)
