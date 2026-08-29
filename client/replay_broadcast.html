@@ -1416,6 +1416,50 @@ body[data-embed] #board { top: 0; height: 100%; }
   var COG_BASE = window.CcStaticReplay
     ? '.'
     : location.pathname.replace(/\/clients?\/[^/]*$/, '') + '/client';
+  // Engine-authoritative wire constants (read via the shared chrome; the
+  // fallback literals for raw file:// opens live in chrome_common.js).
+  var WIRE = C.WIRE, SPEEDS = C.SPEEDS, FPS = C.FPS;
+
+  // Two independent tempo levers (§11, L20):
+  //  (1) ANIM_MAX_FACTOR — chrome beat animations never play faster than this
+  //      no matter the replay speed, so feed rows / flips / banners keep their
+  //      read time at 8-16×. Applied as an animationFactor cap on durations.
+  //  (2) DWELL_FLOOR_MS — a beat's on-screen hold has a wall-clock minimum
+  //      (feed row / banner / curtain), collapsing only the dead time between
+  //      contacts. These are NOT one speed knob — one caps motion, one floors dwell.
+  var ANIM_MAX_FACTOR = 2;
+  var DWELL_FLOOR_MS = { feed: 2600, banner: 1900, curtain: 2400, read: 600 };
+  function animFactor() {
+    // Lever 1 — the chrome plays at min(replaySpeed, cap): at 16× the board flies
+    // but a kill row still slides in at 2×-equivalent so a human can read it.
+    var sp = (lastState && lastState.sp) || 1;
+    return Math.min(sp, ANIM_MAX_FACTOR);
+  }
+  function dwellFloor(kind) {
+    // Lever 2 — a beat's on-screen hold has a wall-clock minimum regardless of
+    // replay speed; speed collapses only the dead time between contacts, never
+    // the read time of a beat itself. Independent of the animFactor cap.
+    return DWELL_FLOOR_MS[kind] || DWELL_FLOOR_MS.read;
+  }
+  // Beat-pause (§11): freeze chrome ambient the instant a beat lands so idle
+  // life never competes with a kill/steal/capture. Held for the READ_PAUSE floor
+  // (≥600ms wall-clock), then released. The board's own 24Hz is never touched.
+  var beatPulseTimer = null;
+  function beatPulse() {
+    stage.classList.add('beat-active');
+    if (beatPulseTimer) clearTimeout(beatPulseTimer);
+    beatPulseTimer = setTimeout(function () {
+      stage.classList.remove('beat-active');
+      beatPulseTimer = null;
+    }, dwellFloor('read'));
+  }
+
+  var $ = C.$;
+  var viewport = $('viewport');
+  var stage = $('stage');
+  var canvas = $('board');
+  var statusEl = $('status');
+
   // ---- pre-load curtain: the bot locker room -------------------------------
   // The stage opens on this scene (see #lockerroom CSS) while the socket /
   // wasm sim boots. The art frames are wired here (their base path is

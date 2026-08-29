@@ -141,9 +141,14 @@ def main():
     # COG_BASE path expression stays: the locker-room curtain and the appended
     # block both resolve their assets through it, and it is the ONE place that
     # maps the page's three delivery routes.
+    # The eye-level billboard art belonged to the raycaster, which is gone.
+    # The cut STOPS at `var $ = C.$;` — the four element handles and the
+    # chrome's own `$` alias live inside this span and every later line needs
+    # them; cutting through them ships a page that throws `$ is not defined`
+    # on load with every asset served 200 (CI run 33247064780).
     page = cut(page, "  var COG_ART = {}, COG_ART_GUN = {};",
-               "  // ---- pre-load curtain: the bot locker room", "eye-level billboard art",
-               inclusive_end=False)
+               "  // Engine-authoritative wire constants",
+               "eye-level billboard art", inclusive_end=False)
     page = swap(page, "window.CtfStaticReplay", "window.CcStaticReplay")
     # One cog, and it is red: the blue/green/yellow locker-room webps are not
     # shipped, so the curtain seats the red bot alone.
