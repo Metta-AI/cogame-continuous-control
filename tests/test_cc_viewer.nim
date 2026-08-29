@@ -78,7 +78,11 @@ suite "chrome provenance":
     ## and the CALL matches that signature: pushFeed takes a NODE, so the
     ## block builds the row and passes it. Passing the text instead threw
     ## `insertBefore: parameter 1 is not of type 'Node'` on every feed line.
+    ## Both halves are pinned — the row is built here, with the starter's own
+    ## `feed-row` class, and no feed call passes a string.
     check "ctx.pushFeed(row)" in page
+    check "row.className = 'feed-row'" in page
+    check "ctx.pushFeed(text" notin page
 
   test "43. no game-block identifier shadows a chrome alias":
     ## `var markBeat = C.markBeat` hoists over a same-named function
