@@ -37,11 +37,16 @@ suite "the spectator vocabulary is this game's, not paintbot's":
       check gone notin page
 
   test "47b. NOTHING this game adds carries paintbot vocabulary":
+    ## The design note's list, in full, minus the two tokens the block cannot
+    ## avoid: `flag` (the inherited element id `flag-alpha`, which the game
+    ## block rewrites rather than renames) and `team` (the inherited chrome's
+    ## own class names, `team-name` / `ec-team*`). Everything else is the
+    ## note's token, not a narrower substitute.
     var offenders: seq[string] = @[]
     let visible = stripJsComments("<!--" & blockText)
-    for word in ["Lives", "LIVES", "Clstr", "flagicon", "heart", "paint",
-                 "hoppers", "hillchip", "POV", "EYES", "spray", "grenade",
-                 "med kit", "killfeed(", "squad-pip"]:
+    for word in ["Lives", "LIVES", "Clstr", "Cap<", "flagicon", "heart",
+                 "paint", "hoppers", "hill", "POV", "EYES", "spray",
+                 "grenade", "med kit", "kill", "squad-pip"]:
       if word in visible:
         offenders.add("block: " & word)
     check offenders.len == 0
