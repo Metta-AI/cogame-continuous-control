@@ -516,11 +516,19 @@ proc addBed(sim: SimServer, packet: var seq[uint8], live: var seq[int]) =
   packet.addObject(BedObjectBase, -bedOffset, 0, StaticBandZ, MapLayerId,
     BedSpriteId)
   live.add(BedObjectBase)
-  let horizonOffset = int((camMicro * 35 div 100) div int64(UmPerPixel)) mod
-    (MapWidth + BedTilePx)
-  packet.addObject(HorizonObjectBase, -horizonOffset, GroundRow - 220, -30_000,
-    MapLayerId, HorizonSpriteId)
-  live.add(HorizonObjectBase)
+  ## The horizon scrolls at 0.35x the camera and its plate is one frame plus a
+  ## tile wide, so a single copy leaves a gap the moment the offset passes the
+  ## tile: TWO copies, a plate apart, cover the frame for every offset.
+  let plateWidth = MapWidth + BedTilePx
+  var horizonOffset = int((camMicro * 35 div 100) div int64(UmPerPixel)) mod
+    plateWidth
+  if horizonOffset < 0:
+    horizonOffset += plateWidth
+  for copy in 0 .. 1:
+    packet.addObject(HorizonObjectBase + copy,
+      -horizonOffset + copy * plateWidth, GroundRow - 220, -30_000,
+      MapLayerId, HorizonSpriteId)
+    live.add(HorizonObjectBase + copy)
 
 proc addRuler(sim: SimServer, packet: var seq[uint8], live: var seq[int]) =
   ## Metre ticks and a numeral every 5 m, placed at WORLD positions so the
