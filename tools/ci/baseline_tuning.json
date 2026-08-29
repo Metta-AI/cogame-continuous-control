@@ -1,0 +1,28 @@
+{
+  "settleTicks": 23,
+  "targetVxMicro": [
+    1670253,
+    3213876,
+    1741081
+  ],
+  "rampCadence": [
+    43,
+    27,
+    72
+  ],
+  "cruiseCadence": [
+    82,
+    77,
+    65
+  ],
+  "cruisePower": [
+    61,
+    82,
+    100
+  ],
+  "biasFor": [
+    -12,
+    4,
+    -6
+  ]
+}

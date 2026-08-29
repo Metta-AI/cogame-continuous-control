@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Continuous control renderer fixture</title>
+<style>
+  html, body { margin: 0; background: #0b0704; color: #f2e8d8;
+    font: 12px system-ui, sans-serif; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; }
+  .cell { border: 1px solid #3a2c1e; }
+  .cell iframe { border: 0; display: block; }
+  .cap { padding: 2px 4px; color: #8a7f72; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<!--
+  The worst-case renderer fixture.
+
+  tools/ci/docker_smoke.sh runs with NO ANTHROPIC_API_KEY, so the seat in the
+  CI replay plays scripted and a scripted baseline emits NO `say` and NO
+  `notes` at all: every replay CI produces carries zero LLM text, and nothing
+  that plays a replay can draw the chrome that shows it (the cogchemists
+  2026-08-24 scar).
+
+  This fixture therefore LOADS THE SHIPPED BUNDLE'S OWN index.html in an
+  iframe and shims only the frame source - it does not re-implement the
+  drawing (the particle-worlds 2026-08-26 scar). The real page, the real
+  chrome_common.js, the real broadcast_core.js and the real appended
+  CONTINUOUS-CONTROL block all run; this page just hands them a frame that
+  CI's own replay can never contain: a full-cap 140-rune `say`, all three
+  morphologies, all four stage-pip states, a DOWN banner, a LINED OUT endcard
+  and a fallback glyph - at 360 px, 640 px and 1280 px.
+-->
+<div class="row" id="row"></div>
+<script>
+(function () {
+  'use strict';
+  var WIDTHS = [[360, 203], [640, 360], [1280, 720]];
+
+  // Exactly 140 runes: the server's own MaxSayRunes, so the feed row is laid
+  // out at its true worst case rather than at whatever a scripted episode
+  // happened to produce.
+  var SAY = ('lengthening the stride now the cheetah is up to speed; the front '
+    + 'knee is pegged at full torque so power comes down six next turn!!!!!');
+  SAY = Array.from(SAY).slice(0, 140).join('');
+
+  function link(i, name, x, y, a, hl, r) {
+    return { i: i, name: name, x: x, y: y, a: a, hl: hl, r: r };
+  }
+
+  var LOG = [
+    { i: 0, morph: 'hopper', outcome: 'fell', distance: 6.11, 'return': 12.99,
+      ticks: 213, peak: 3.42 },
+    { i: 1, morph: 'cheetah', outcome: 'lined', distance: 60.0,
+      'return': 31.87, ticks: 418, peak: 6.18 }
+  ];
+
+  function state(phase) {
+    return {
+      t: 662, mt: 1512, ph: phase, lob: 0, pl: true, sp: 1, mx: 1257, st: 0,
+      lp: true, sk: false, ff: false, en: true, mm: -1, bs: 1, pov: -1,
+      hold: 0,
+      turnTicks: 36, turn: 18, turns: 42,
+      teams: { alpha: { lives: 2, flag: 'home', carrier: -1, prog: 0,
+                        policies: ['continuous-control-gaitsmith'],
+                        score: 44.86, stagesDone: 2, stagesLined: 1,
+                        distance: 66.11, speed: 5.31, falls: 1,
+                        down: false } },
+      roster: [{ s: 0, team: 'alpha', name: 'continuous-control-gaitsmith',
+                 pol: 'continuous-control-gaitsmith', col: 0, alive: true,
+                 lives: 1, hp: 1, carry: false, k: 0, d: 0, cap: 0, mk2: 0,
+                 mk3: 0, tk: 0, alias: 'Alpha', seat: 0, kind: 'llm',
+                 score: 44.86, distance: 66.11, llmTurns: 17, fallbacks: 1,
+                 repaired: 3 }],
+      events: [],
+      cc: {
+        stage: { index: 3, of: 3, morph: 'walker', morphLabel: 'WALKER',
+                 tick: 108, of_ticks: 468, terminatesOnFall: true,
+                 phase: phase, ppm: 1.5, log: LOG },
+        track: { length: 60.0, x: 14.82, best: 14.82, cam: 11.82, back: -6.0,
+                 marks: [{ i: 0, x: 6.11, outcome: 'fell' },
+                         { i: 1, x: 60.0, outcome: 'lined' }] },
+        body: { morph: 'walker',
+                links: [link(0, 'torso', 14.82, 1.21, -8.4, 0.2, 0.05),
+                        link(1, 'r_thigh', 14.79, 0.79, -3.1, 0.225, 0.05),
+                        link(2, 'r_shin', 14.75, 0.32, 1.9, 0.25, 0.04),
+                        link(3, 'r_foot', 14.86, 0.06, 88.1, 0.1, 0.06),
+                        link(4, 'l_thigh', 14.84, 0.79, 5.2, 0.225, 0.05),
+                        link(5, 'l_shin', 14.92, 0.32, -2.2, 0.25, 0.04),
+                        link(6, 'l_foot', 15.03, 0.06, 91.4, 0.1, 0.06)],
+                joints: [{ j: 0, name: 'r_hip', a: -22.4, tq: 74, sat: false },
+                         { j: 1, name: 'r_knee', a: 11.9, tq: 88, sat: false },
+                         { j: 2, name: 'r_ankle', a: -6.2, tq: 31, sat: false },
+                         { j: 3, name: 'l_hip', a: 18.0, tq: 61, sat: false },
+                         { j: 4, name: 'l_knee', a: -30.7, tq: 100, sat: true },
+                         { j: 5, name: 'l_ankle', a: 2.1, tq: 19, sat: false }],
+                feet: [{ f: 0, name: 'r_foot', g: true, x: 14.86, y: 0.06,
+                         slip: 0.08 },
+                       { f: 1, name: 'l_foot', g: false, x: 15.03, y: 0.31,
+                         slip: 0.0 }],
+                vx: 5.31, vy: 0.12, spin: -31.0, pitch: -8.4, height: 1.21,
+                airborne: false },
+        order: { gait: 'run', cadence: 68, power: 80, lean: 10,
+                 stride_bias: -6, phase_shift: 25, stride_hz: 2.36,
+                 cycle_pct: 41, source: 'llm', say: SAY },
+        score: { 'return': 44.86, par: 40.0, max: 243.744, falls: 1, lined: 1,
+                 saturated: 214, repaired: 3, fallbacks: 1 },
+        alias: 'Alpha', name: 'continuous-control-gaitsmith', kind: 'llm',
+        reason: 'complete', endRule: 'ladderComplete', win: true, feed: []
+      },
+      orders: [{ turn: 18, source: 'llm', gait: 'run', cadence: 68, power: 80,
+                 lean: 10, say: SAY }],
+      cc_beats: [
+        { t: 0, k: 'stagestart', label: 'STAGE 1 OF 3 \u2014 HOPPER, 60 M OF TRACK' },
+        { t: 120, k: 'milestone', label: '5 METRES' },
+        { t: 213, k: 'fall', label: 'DOWN \u2014 HOPPER PITCHED PAST 20\u00b0 AT 6.1 M' },
+        { t: 250, k: 'stagestart', label: 'STAGE 2 OF 3 \u2014 CHEETAH, 60 M OF TRACK' },
+        { t: 500, k: 'fallback', label: 'MISSED THE CALL \u2014 trotter order' },
+        { t: 668, k: 'stageend', label: 'LINED OUT \u2014 60 M IN 17.4 S' },
+        { t: 1257, k: 'end', label: 'FINAL \u2014 RETURN 44.9' }
+      ],
+      lead: { teams: ['alpha'], pts: [[0, 0], [213, 12990], [668, 44860]] },
+      lulls: [[430, 470]],
+      over: { winner: 'alpha', draw: false, timeLimit: false,
+              endRule: 'ladderComplete', reason: 'complete', score: 44.86,
+              ticks: 1257,
+              teams: { alpha: { stagesLined: 1, falls: 1, distance: 66.11,
+                                upright: 681, saturated: 214 } } }
+    };
+  }
+
+  var EVENTS = [
+    { k: 'stagestart', t: 0, i: 2, of: 3, morph: 'walker', links: 7,
+      joints: 6, terminatesOnFall: true },
+    { k: 'turn', t: 1, n: 18, stage: 2, stageTurn: 3 },
+    { k: 'order', t: 2, n: 18, gait: 'run', cadence: 68, power: 80, lean: 10,
+      stride_bias: -6, phase_shift: 25, source: 'llm', repaired: 1 },
+    { k: 'say', t: 3, text: SAY },
+    { k: 'stride', t: 4, turn: 18, distance: 7620000, meanVx: 5080000,
+      strides: 3500, peakTorquePct: 100, saturatedTicks: 11,
+      airborneTicks: 6 },
+    { k: 'milestone', t: 5, stage: 2, metres: 10 },
+    { k: 'fall', t: 6, stage: 0, why: 'pitched', x: 6110000 },
+    { k: 'stageend', t: 7, i: 1, outcome: 'lined', distance: 60000000,
+      'return': 31870000, ticks: 418, peakSpeed: 6180000 },
+    { k: 'fallback', t: 8, cause: 'timeout' },
+    { k: 'budget', t: 9, turn: 40, remaining_s: 30 },
+    { k: 'end', t: 10, reason: 'complete', endRule: 'ladderComplete',
+      total: 44860000, score: 44860000, stagesLined: 1, falls: 1 }
+  ];
+
+  var pending = WIDTHS.length;
+  var failed = null;
+
+  WIDTHS.forEach(function (size) {
+    var cell = document.createElement('div');
+    cell.className = 'cell';
+    var cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.textContent = size[0] + ' x ' + size[1];
+    var frame = document.createElement('iframe');
+    frame.width = size[0];
+    frame.height = size[1];
+    frame.src = './index.html?replay=./replay.json';
+    cell.appendChild(cap);
+    cell.appendChild(frame);
+    document.getElementById('row').appendChild(cell);
+
+    frame.addEventListener('load', function () {
+      // The bundle boots its wasm runtime asynchronously; poll for the chrome
+      // hook rather than racing it.
+      var tries = 0;
+      var timer = setInterval(function () {
+        tries++;
+        var w = frame.contentWindow;
+        var chrome = w && w.CcChrome;
+        if (!chrome && tries < 120) return;
+        clearInterval(timer);
+        if (!chrome) {
+          failed = 'CcChrome never appeared at ' + size[0] + 'px';
+          finish();
+          return;
+        }
+        try {
+          var playing = state('playing');
+          chrome.frame(playing, null, false);
+          for (var i = 0; i < EVENTS.length; i++) {
+            chrome.event(EVENTS[i], playing, null);
+          }
+          chrome.frame(state('gameover'), null, false);
+          // Every element that carries a cap string must have been laid out
+          // with room: an empty or zero-width box at 360 px is the failure
+          // this fixture exists to catch.
+          var doc = w.document;
+          ['cc-ribbon', 'cc-pips', 'cc-strip', 'fpv-name', 'clock-caption']
+            .forEach(function (id) {
+              var el = doc.getElementById(id);
+              if (!el) { failed = id + ' is missing at ' + size[0] + 'px'; return; }
+              var box = el.getBoundingClientRect();
+              if (box.width <= 0 || box.height <= 0) {
+                failed = id + ' has no box at ' + size[0] + 'px';
+              }
+              if (box.right < 0 || box.bottom < 0) {
+                failed = id + ' is off-frame at ' + size[0] + 'px';
+              }
+            });
+        } catch (err) {
+          failed = String(err && err.message ? err.message : err);
+        }
+        finish();
+      }, 100);
+    });
+  });
+
+  function finish() {
+    pending--;
+    if (pending > 0) return;
+    if (failed) {
+      document.documentElement.setAttribute('data-replay-error', failed);
+      return;
+    }
+    document.documentElement.setAttribute('data-replay-loaded', 'true');
+  }
+})();
+</script>
+</body>
+</html>

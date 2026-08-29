@@ -1,0 +1,13 @@
+nim.cfg
+nimcache/
+replay-viewer/dist/
+dist/
+tmp/
+*.replay
+*.exe
+/continuous-control
+/continuous-control-player
+.DS_Store
+node_modules/
+viewer-smoke.png
+viewer-smoke.json

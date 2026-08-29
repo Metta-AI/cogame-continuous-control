@@ -1,0 +1,621 @@
+{
+  "$schema": "https://softmax.com/schemas/coworld-manifest.json",
+  "tags": [
+    "continuous-control",
+    "single-agent",
+    "physics",
+    "locomotion",
+    "mujoco-family"
+  ],
+  "episode_timeout_minutes": 20,
+  "game": {
+    "name": "continuous-control",
+    "owner": "daveey@softmax.com",
+    "description": "One cog, three planar machines, sixty metres of track, three times. Every 1.5 seconds the cog names a gait and tunes five numbers; a deterministic pattern generator and PD servos run that order on every joint 240 times a second. The score is the return: metres covered, plus a bonus per second upright, minus the cost of slamming the actuators.",
+    "image": "{{CONTINUOUS_CONTROL_IMAGE}}",
+    "runnable": {
+      "type": "game",
+      "run": [
+        "/bin/continuous-control"
+      ],
+      "env": {
+        "ANTHROPIC_API_KEY_URI": "secret://coworld/continuous-control/anthropic_api_key"
+      },
+      "resources": {
+        "requests": {
+          "cpu": "500m",
+          "memory": "512Mi"
+        },
+        "limits": {
+          "cpu": "2",
+          "memory": "2Gi"
+        }
+      }
+    },
+    "replay_viewer": {
+      "bundle": "static-replay-viewer"
+    },
+    "protocols": {
+      "player": {
+        "type": "uri",
+        "value": "https://github.com/Metta-AI/cogame-continuous-control/blob/main/docs/PROTOCOL.md"
+      },
+      "global": {
+        "type": "uri",
+        "value": "https://github.com/Metta-AI/cogame-continuous-control/blob/main/docs/PROTOCOL.md"
+      }
+    },
+    "docs": {
+      "readme": {
+        "type": "uri",
+        "value": "https://github.com/Metta-AI/cogame-continuous-control/blob/main/README.md"
+      },
+      "pages": [
+        {
+          "id": "rules.md",
+          "title": "Rules",
+          "content": {
+            "type": "uri",
+            "value": "https://github.com/Metta-AI/cogame-continuous-control/blob/main/docs/RULES.md"
+          }
+        },
+        {
+          "id": "actions.md",
+          "title": "Gait orders and the reply format",
+          "content": {
+            "type": "uri",
+            "value": "https://github.com/Metta-AI/cogame-continuous-control/blob/main/docs/ACTIONS.md"
+          }
+        },
+        {
+          "id": "physics.md",
+          "title": "The physics, and how it differs from MuJoCo",
+          "content": {
+            "type": "uri",
+            "value": "https://github.com/Metta-AI/cogame-continuous-control/blob/main/docs/PHYSICS.md"
+          }
+        }
+      ]
+    },
+    "config_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tokens",
+        "players"
+      ],
+      "properties": {
+        "tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 1,
+          "description": "Runner-injected per-seat tokens. Never written into a game_config."
+        },
+        "players": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 0,
+          "maxItems": 1
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "num_agents": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1
+        },
+        "minPlayers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "stageLadder": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "string",
+            "enum": [
+              "hopper",
+              "cheetah",
+              "walker"
+            ]
+          }
+        },
+        "stagesPerEpisode": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "stageTicks": {
+          "type": "integer",
+          "minimum": 36,
+          "maximum": 2000
+        },
+        "resetTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 240
+        },
+        "turnTicks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 240
+        },
+        "maxTurns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "maxTicks": {
+          "type": "integer",
+          "minimum": 36,
+          "maximum": 6000
+        },
+        "par": {
+          "type": "number"
+        },
+        "substepsPerTick": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 40
+        },
+        "solverIterations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "attempt1Ms": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 120000
+        },
+        "retryMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 120000
+        },
+        "turnBudgetMs": {
+          "type": "integer",
+          "minimum": 2000,
+          "maximum": 240000
+        },
+        "turnSpacingMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120000
+        },
+        "wallClockBudgetSeconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 720
+        },
+        "lobbyJoinTimeoutTicks": {
+          "type": "integer",
+          "minimum": 24,
+          "maximum": 20000
+        },
+        "gameOverTicks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20000
+        },
+        "stateKeyframeTicks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "fastMode": {
+          "type": "boolean"
+        },
+        "showPlayerLabels": {
+          "type": "boolean"
+        },
+        "model": {
+          "type": "string"
+        },
+        "maxOutputTokens": {
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 8192
+        }
+      }
+    },
+    "results_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "names",
+        "aliases",
+        "scores",
+        "win",
+        "reason",
+        "endRule"
+      ],
+      "properties": {
+        "names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "scores": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "win": {
+          "type": "array",
+          "items": {
+            "type": "boolean"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "winner": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "deadline",
+            "fault"
+          ]
+        },
+        "endRule": {
+          "type": "string",
+          "enum": [
+            "ladderComplete",
+            "turnCap",
+            "wallClock",
+            "fault"
+          ]
+        },
+        "variant": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "stageCount": {
+          "type": "integer"
+        },
+        "stageTicks": {
+          "type": "integer"
+        },
+        "par": {
+          "type": "number"
+        },
+        "maxReturn": {
+          "type": "number"
+        },
+        "totalReturn": {
+          "type": "number"
+        },
+        "stageMorph": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "hopper",
+              "cheetah",
+              "walker"
+            ]
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stageOutcome": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "lined",
+              "ran",
+              "fell",
+              "unreached"
+            ]
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stageDistance": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stageReturn": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stageTicksRun": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stageTurns": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stageUprightTicks": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stageCtrlCost": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stagePeakSpeed": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stageStrides": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "stagesLined": {
+          "type": "integer"
+        },
+        "distanceTotal": {
+          "type": "number"
+        },
+        "uprightTicksTotal": {
+          "type": "integer"
+        },
+        "ctrlCostTotal": {
+          "type": "number"
+        },
+        "falls": {
+          "type": "integer"
+        },
+        "saturatedTicks": {
+          "type": "integer"
+        },
+        "finalTick": {
+          "type": "integer"
+        },
+        "turnsPlayed": {
+          "type": "integer"
+        },
+        "ordersRepaired": {
+          "type": "integer"
+        },
+        "policyKinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "llmTurns": {
+          "type": "integer"
+        },
+        "fallbackTurns": {
+          "type": "integer"
+        },
+        "deadSeats": {
+          "type": "array",
+          "items": {
+            "type": "boolean"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "stopDetail": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "player": [
+    {
+      "id": "trotter",
+      "type": "player",
+      "name": "trotter",
+      "description": "The published scripted baseline and the server-side fallback: settle, then ramp the cadence until the body is moving, then cruise. It is the certification player.",
+      "image": "{{CONTINUOUS_CONTROL_IMAGE}}",
+      "run": [
+        "/bin/continuous-control-player"
+      ],
+      "source_url": "https://github.com/Metta-AI/cogame-continuous-control",
+      "env": {
+        "PLAYER_SCRIPTED": "trotter",
+        "PLAYER_POLICY_LABEL": "trotter"
+      },
+      "resources": {
+        "requests": {
+          "cpu": "100m",
+          "memory": "64Mi"
+        },
+        "limits": {
+          "cpu": "1"
+        }
+      }
+    }
+  ],
+  "variants": [
+    {
+      "id": "ladder",
+      "name": "Locomotion ladder (1 cog, 3 machines)",
+      "description": "One cog drives three planar machines down a flat 60-metre track, 19.5 seconds each: a one-legged hopper, a long-bodied cheetah that cannot fall, and an upright walker that can. Every 1.5 seconds the cog names a gait and tunes five numbers; a deterministic pattern generator and PD servos run that order on every joint 240 times a second. The score is the return: metres covered, plus a bonus per second upright, minus the cost of slamming the actuators.",
+      "game_config": {
+        "players": [
+          {
+            "name": "Alpha"
+          }
+        ],
+        "num_agents": 1,
+        "minPlayers": 1,
+        "stageLadder": [
+          "hopper",
+          "cheetah",
+          "walker"
+        ],
+        "stagesPerEpisode": 3,
+        "stageTicks": 468,
+        "resetTicks": 36,
+        "turnTicks": 36,
+        "maxTurns": 42,
+        "maxTicks": 1512,
+        "par": 40.0,
+        "substepsPerTick": 10,
+        "solverIterations": 12,
+        "stateKeyframeTicks": 48,
+        "attempt1Ms": 6000,
+        "retryMs": 3000,
+        "turnBudgetMs": 9000,
+        "turnSpacingMs": 2600,
+        "wallClockBudgetSeconds": 690,
+        "lobbyJoinTimeoutTicks": 2400,
+        "fastMode": true,
+        "showPlayerLabels": false
+      }
+    },
+    {
+      "id": "bipeds",
+      "name": "Bipeds only (1 cog, 3 machines that fall over)",
+      "description": "The same three-stage format with the cheetah removed: a hopper and then two walkers, each with a different seeded start wobble. Both of these machines end their stage the instant the torso drops or pitches too far, so falling - not top speed - is what decides the episode. This is where a policy that only knows how to go fast stops scoring.",
+      "game_config": {
+        "players": [
+          {
+            "name": "Alpha"
+          }
+        ],
+        "num_agents": 1,
+        "minPlayers": 1,
+        "stageLadder": [
+          "hopper",
+          "walker",
+          "walker"
+        ],
+        "stagesPerEpisode": 3,
+        "stageTicks": 468,
+        "resetTicks": 36,
+        "turnTicks": 36,
+        "maxTurns": 42,
+        "maxTicks": 1512,
+        "par": 30.0,
+        "substepsPerTick": 10,
+        "solverIterations": 12,
+        "stateKeyframeTicks": 48,
+        "attempt1Ms": 6000,
+        "retryMs": 3000,
+        "turnBudgetMs": 9000,
+        "turnSpacingMs": 2600,
+        "wallClockBudgetSeconds": 690,
+        "lobbyJoinTimeoutTicks": 2400,
+        "fastMode": true,
+        "showPlayerLabels": false
+      }
+    }
+  ],
+  "certification": {
+    "players": [
+      {
+        "player_id": "trotter"
+      }
+    ],
+    "game_config": {
+      "players": [
+        {
+          "name": "Alpha"
+        }
+      ],
+      "num_agents": 1,
+      "minPlayers": 1,
+      "stageLadder": [
+        "hopper",
+        "cheetah",
+        "walker"
+      ],
+      "stagesPerEpisode": 3,
+      "stageTicks": 468,
+      "resetTicks": 36,
+      "turnTicks": 36,
+      "maxTurns": 42,
+      "maxTicks": 1512,
+      "par": 40.0,
+      "substepsPerTick": 10,
+      "solverIterations": 12,
+      "stateKeyframeTicks": 48,
+      "attempt1Ms": 6000,
+      "retryMs": 3000,
+      "turnBudgetMs": 9000,
+      "turnSpacingMs": 0,
+      "wallClockBudgetSeconds": 240,
+      "lobbyJoinTimeoutTicks": 600,
+      "fastMode": true,
+      "showPlayerLabels": false,
+      "seed": 42
+    }
+  }
+}

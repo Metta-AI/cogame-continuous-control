@@ -1,0 +1,686 @@
+<!-- ============================================================
+     CONTINUOUS-CONTROL additions to the inherited coworld-ctf chrome
+     ============================================================
+     Everything above this banner is the starter's broadcast page. It is not a
+     lookalike and it is not a rewrite: it is coworld-ctf's own page with the
+     elements the design note lists as removed cut out (the #viewpanel zoom bar
+     and minimap, the POV badge, the raycast first-person pipeline, the hp/gear
+     HUD and its inset map) and the spectator vocabulary re-mapped. Everything
+     THIS game adds lives below, and it is installed through the starter's own
+     splice hook: window.PaintballChrome, renamed window.CcChrome, with
+     install(ctx) / frame(s, ctx, jumped) / event(e, s, ctx) keeping the same
+     signatures.
+
+     Nothing here touches the transport band. relayout() still owns --hudscale,
+     --topband and --band on :root; the endcard still stops at
+     bottom: var(--band, 0px) and is still dismissed by every seek; and every
+     scrubber beat this block draws is a LABELLED, CLICKABLE BUTTON that seeks
+     on click, styled for EVERY kind the sim emits and no others - stagestart,
+     milestone, fall, stageend, fallback and end. The builder carries a cc-
+     prefix precisely so it can never be shadowed by the chrome alias block
+     (var markBeat = C.markBeat hoists over a same-named function declaration;
+     the tandem 2026-08-23 trap).
+
+     THE BOARD IS A FIXED 1440 x 960 CAMERA VIEWPORT, so the starter's
+     #viewpanel is dropped entirely; the job it would have done is done
+     properly by the 60 m TRACK STRIP below, which shows the whole track at a
+     glance instead of a thumbnail of a board that does not exist.
+     ============================================================ -->
+<style>
+/* ---- the one scorebug plate ------------------------------------------- */
+/* The embedded featured-match iframe is ~360 px wide, so a policy name must
+   shrink rather than collapse to an ellipsis of nothing. */
+.plate-name {
+  flex: 1 1 auto;
+  min-width: 3.2em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plate .team-name {
+  flex: 1 1 auto;
+  min-width: 3.2em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plate .stagechips {
+  display: inline-flex;
+  gap: calc(2 * var(--u));
+  align-items: center;
+  margin-right: calc(6 * var(--u));
+}
+.stage-chip {
+  width: calc(9 * var(--u));
+  height: calc(9 * var(--u));
+  border: 1px solid rgba(242, 232, 216, 0.45);
+  background: rgba(242, 232, 216, 0.08);
+  border-radius: 1px;
+}
+.stage-chip.ran { background: var(--green); border-color: var(--green); }
+.stage-chip.lined { background: var(--green); border-color: var(--paper); }
+.stage-chip.fell { background: var(--red); border-color: var(--red); }
+.plate .squad { display: none; }
+.cc-fallback {
+  color: var(--amber);
+  font-weight: 700;
+  margin-left: calc(4 * var(--u));
+}
+.cc-alias {
+  color: var(--ghost);
+  font-size: calc(9 * var(--u));
+  letter-spacing: 0.08em;
+  margin-right: calc(4 * var(--u));
+}
+
+/* ---- stage ribbon + pips: the board's LEFT letterbox gutter ------------ */
+/* At 360 px the board letterboxes to ~180 x 120 with two ~90 px gutters, and
+   this game uses them: the ribbon and the pips live in the left gutter, the
+   gait card in the right, so neither ever overlaps the board and neither ever
+   enters the transport band. */
+#cc-ribbon {
+  position: absolute;
+  left: calc(12 * var(--u));
+  top: calc(var(--topband, 0px) + 34 * var(--u));
+  z-index: 9;
+  padding: calc(4 * var(--u)) calc(8 * var(--u));
+  background: rgba(12, 9, 6, 0.56);
+  box-shadow: 0 0 0 1px rgba(232, 163, 61, 0.28);
+  color: var(--paper);
+  font-size: calc(11 * var(--u));
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  pointer-events: none;
+  max-width: 62%;
+}
+#cc-ribbon .cc-sub { color: var(--paper-dim); font-size: calc(10 * var(--u)); }
+#cc-pips {
+  position: absolute;
+  left: calc(12 * var(--u));
+  top: calc(var(--topband, 0px) + 78 * var(--u));
+  z-index: 9;
+  display: flex;
+  gap: calc(5 * var(--u));
+  align-items: flex-end;
+  pointer-events: none;
+}
+.cc-pip {
+  display: block;
+  width: calc(13 * var(--u));
+  height: calc(13 * var(--u));
+  border-radius: 50%;
+  border: 1px solid rgba(242, 232, 216, 0.5);
+  background: transparent;
+  position: relative;
+}
+.cc-pip.cur { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(232, 163, 61, 0.35); }
+.cc-pip.ran { background: var(--green); border-color: var(--green); }
+.cc-pip.lined { background: var(--green); border-color: var(--paper); }
+.cc-pip.lined::before {
+  content: '';
+  position: absolute;
+  left: 34%; right: 34%; top: 8%; bottom: 8%;
+  border-left: 2px solid var(--paper);
+  border-right: 2px solid var(--paper);
+}
+.cc-pip.fell { background: var(--red); border-color: var(--red); }
+.cc-pip.fell::after {
+  content: '';
+  position: absolute;
+  left: 10%; right: 10%; top: 45%;
+  height: 2px;
+  background: var(--paper);
+  transform: rotate(-45deg);
+}
+.cc-pip.unreached { background: transparent; border-color: var(--ghost); }
+.cc-pip .cc-pipcap {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: calc(7 * var(--u));
+  color: var(--paper-dim);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* ---- the 60 m track strip: pinned INSIDE the board region, top edge ---- */
+/* This is what replaces the dropped minimap. It is never in the transport
+   band: it hangs from --topband, which relayout() owns. */
+#cc-strip {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: calc(var(--topband, 0px) + 8 * var(--u));
+  height: calc(6 * var(--u));
+  z-index: 8;
+  background: rgba(12, 9, 6, 0.62);
+  box-shadow: 0 0 0 1px rgba(242, 232, 216, 0.18);
+  pointer-events: none;
+}
+.cc-strip-gate {
+  position: absolute;
+  right: 0; top: calc(-2 * var(--u));
+  width: calc(3 * var(--u));
+  height: calc(10 * var(--u));
+  background: var(--red);
+}
+.cc-strip-run {
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  background: rgba(232, 163, 61, 0.45);
+}
+.cc-strip-mark {
+  position: absolute;
+  top: calc(-2 * var(--u));
+  width: calc(2 * var(--u));
+  height: calc(10 * var(--u));
+  background: var(--ghost);
+}
+.cc-strip-mark.fell { background: var(--red); }
+.cc-strip-mark.lined { background: var(--green); }
+.cc-strip-head {
+  position: absolute;
+  top: calc(-3 * var(--u));
+  width: calc(4 * var(--u));
+  height: calc(12 * var(--u));
+  background: var(--paper);
+}
+
+/* ---- the gait card (the repurposed #fpv panel) ------------------------- */
+#fpv.cc-on { display: block; aspect-ratio: 1 / 1; }
+#fpv-canvas { width: 100%; height: 100%; display: block; }
+
+/* ---- scrubber beats: one rule per kind the sim emits, and no others ---- */
+.beat-marker {
+  position: absolute;
+  bottom: 0;
+  width: calc(3 * var(--u));
+  height: calc(11 * var(--u));
+  margin-left: calc(-1.5 * var(--u));
+  padding: 0;
+  border: 0;
+  border-radius: 1px;
+  cursor: pointer;
+  z-index: 4;
+}
+.beat-marker.stagestart { background: rgba(242, 232, 216, 0.62); height: calc(9 * var(--u)); }
+.beat-marker.milestone { background: var(--amber); height: calc(7 * var(--u)); }
+.beat-marker.stageend { background: var(--green); height: calc(13 * var(--u)); width: calc(4 * var(--u)); }
+.beat-marker.fallback { background: var(--ghost); height: calc(8 * var(--u)); }
+.beat-marker.end { background: var(--paper); height: calc(14 * var(--u)); width: calc(4 * var(--u)); }
+/* The moment the spectator came for: the tallest, reddest marker on the bar. */
+.beat-marker.fall {
+  background: var(--red);
+  height: calc(18 * var(--u));
+  width: calc(5 * var(--u));
+  box-shadow: 0 0 calc(6 * var(--u)) rgba(224, 82, 58, 0.9);
+}
+
+/* ---- legible at 360 px ------------------------------------------------- */
+/* relayout() toggles #stage.tiny at boardW <= 620 and clamps --hudscale to
+   [0.5, 1.6]; both are the starter's, kept verbatim. These five rules are
+   this game's own additions on top of them. */
+#stage.tiny .cc-alias,
+#stage.tiny .stage-label,
+#stage.tiny .fl-cap { display: none; }
+#stage.tiny .plate .avatar { width: calc(10 * var(--u)); height: calc(10 * var(--u)); }
+#stage.tiny .cc-fallback { margin-left: calc(2 * var(--u)); font-size: calc(9 * var(--u)); }
+#stage.tiny #cc-ribbon {
+  font-size: calc(9 * var(--u));
+  max-width: 54%;
+  line-height: 1.25;
+}
+#stage.tiny #cc-pips { top: calc(var(--topband, 0px) + 66 * var(--u)); gap: calc(3 * var(--u)); }
+#stage.tiny .cc-pip { width: calc(11 * var(--u)); height: calc(11 * var(--u)); }
+#stage.tiny .cc-pip .cc-pipcap { display: none; }
+#stage.tiny #cc-strip { height: calc(6 * var(--u)); left: 6%; right: 6%; }
+#stage.tiny #fpv {
+  width: calc(84 * var(--u)) !important;
+  height: calc(84 * var(--u)) !important;
+  min-width: 0;
+  max-width: none;
+}
+#stage.tiny #fpv-grip { display: none; }
+@media (max-width: 640px) {
+  .stage-label, .cc-alias, .fl-cap { display: none; }
+}
+</style>
+<script>
+(function () {
+  'use strict';
+  var MORPH = { hopper: 'HOPPER', cheetah: 'CHEETAH', walker: 'WALKER' };
+  var BAR_KEYS = [
+    ['cadence', 'CADENCE', 0, 100],
+    ['power', 'POWER', 0, 100],
+    ['lean', 'LEAN', -50, 50],
+    ['stride_bias', 'STRIDE BIAS', -50, 50],
+    ['phase_shift', 'PHASE SHIFT', -50, 50]
+  ];
+
+  var ctx = null;
+  var beatsDrawn = false;
+
+  function ccEl(id) { return document.getElementById(id); }
+
+  function ccEscape(text) {
+    return String(text == null ? '' : text)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function ccEnsureNodes() {
+    var stage = ccEl('stage');
+    if (!stage || ccEl('cc-ribbon')) return;
+    var ribbon = document.createElement('div');
+    ribbon.id = 'cc-ribbon';
+    ribbon.innerHTML = '<div class="cc-main">STAGE 1/3</div>' +
+      '<div class="cc-sub">0.0 M</div>';
+    stage.appendChild(ribbon);
+    var pips = document.createElement('div');
+    pips.id = 'cc-pips';
+    stage.appendChild(pips);
+    var strip = document.createElement('div');
+    strip.id = 'cc-strip';
+    strip.innerHTML = '<div class="cc-strip-run"></div>' +
+      '<div class="cc-strip-head"></div><div class="cc-strip-gate"></div>';
+    stage.appendChild(strip);
+  }
+
+  // The beat builder. Named ccBeat, NEVER markBeat: the chrome alias block
+  // declares `var markBeat = C.markBeat`, and a same-named function
+  // declaration here would be hoisted over by it. Every marker is a real
+  // <button> with a title and an aria-label, and it seeks on click.
+  function ccBeat(tick, kind, label, startTick, maxTick) {
+    var scrub = ccEl('scrub');
+    if (!scrub) return;
+    var span = Math.max(1, maxTick - startTick);
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'beat-marker ' + kind;
+    b.style.left = (Math.min(1, Math.max(0, (tick - startTick) / span)) * 100) + '%';
+    b.title = label;
+    b.setAttribute('aria-label', label);
+    b.__tick = tick;
+    b.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (ctx && ctx.send) ctx.send('s:' + tick);
+    });
+    scrub.appendChild(b);
+  }
+
+  function ccDrawBeats(s) {
+    if (beatsDrawn || !s.cc_beats) return;
+    beatsDrawn = true;
+    var st = Math.max(0, s.st || 0);
+    var mx = Math.max(st + 1, s.mx || 1);
+    for (var i = 0; i < s.cc_beats.length; i++) {
+      var b = s.cc_beats[i];
+      ccBeat(b.t, b.k, b.label, st, mx);
+    }
+  }
+
+  // ---- the scorebug plate ------------------------------------------------
+  // Only the CONTENTS of the inherited plate change: the plate, the sides, the
+  // clock column and #plates-r (kept, rendered EMPTY, because it is one of the
+  // scorebug's three flex columns and removing it would un-centre #clock) are
+  // the starter's. The plate carries the seat's REAL policy name — spectator
+  // side only — and its in-game alias beside it.
+  function ccPlate(s, g) {
+    var name = ccEl('name-alpha');
+    if (name) {
+      name.className = 'team-name plate-name';
+      name.textContent = g.name || 'COG';
+      name.title = g.name || '';
+    }
+    var num = ccEl('lives-alpha');
+    if (num) num.textContent = g.score['return'].toFixed(1);
+    var label = document.querySelector('#plates-l .stage-label');
+    if (label) label.textContent = 'Return';
+    var chips = ccEl('flag-alpha');
+    if (chips) {
+      var kids = chips.querySelectorAll('.stage-chip');
+      var log = g.stage.log || [];
+      for (var i = 0; i < kids.length; i++) {
+        kids[i].className = 'stage-chip';
+        for (var j = 0; j < log.length; j++) {
+          if (log[j].i === i) kids[i].classList.add(log[j].outcome);
+        }
+      }
+      var row = document.querySelector('#plates-l .lives-line');
+      if (row && !document.querySelector('#plates-l .cc-alias')) {
+        var tag = document.createElement('span');
+        tag.className = 'cc-alias';
+        tag.textContent = String(g.alias || 'ALPHA').toUpperCase();
+        row.insertBefore(tag, row.firstChild);
+      }
+      var fb = document.querySelector('#plates-l .cc-fallback');
+      if (g.score.fallbacks > 0 && !fb && row) {
+        var mark = document.createElement('span');
+        mark.className = 'cc-fallback';
+        mark.textContent = '\u21af';
+        mark.title = g.score.fallbacks + ' fallback turn(s)';
+        row.appendChild(mark);
+      }
+    }
+  }
+
+  // ---- the clock ---------------------------------------------------------
+  function ccClock(s, g) {
+    var big = ccEl('clock-time'), cap = ccEl('clock-caption');
+    if (big) {
+      big.textContent = g.track.x.toFixed(1) + ' m \u00b7 ' +
+        g.body.vx.toFixed(2) + ' m/s';
+    }
+    if (cap) {
+      cap.textContent = 'STAGE ' + g.stage.index + '/' + g.stage.of +
+        ' \u00b7 ' + (MORPH[g.stage.morph] || '') +
+        ' \u00b7 TICK ' + g.stage.tick + '/' + g.stage.of_ticks;
+    }
+  }
+
+  // ---- the stage ribbon and the three pips ------------------------------
+  function ccRibbon(g) {
+    var ribbon = ccEl('cc-ribbon');
+    if (!ribbon) return;
+    var morph = MORPH[g.stage.morph] || '';
+    var full = 'STAGE ' + g.stage.index + '/' + g.stage.of + ' \u00b7 ' +
+      morph + ' \u00b7 ' + g.stage.ppm.toFixed(2) + ' PTS/M';
+    ribbon.title = full + ' \u00b7 ' + g.track.x.toFixed(1) + ' M';
+    ribbon.querySelector('.cc-main').textContent =
+      'STAGE ' + g.stage.index + '/' + g.stage.of + ' \u00b7 ' + morph;
+    ribbon.querySelector('.cc-sub').textContent =
+      g.track.x.toFixed(1) + ' M \u00b7 ' + g.body.vx.toFixed(2) + ' M/S';
+  }
+
+  function ccPips(g) {
+    var host = ccEl('cc-pips');
+    if (!host) return;
+    var total = g.stage.of || 3;
+    if (host.childNodes.length !== total) {
+      host.innerHTML = '';
+      for (var i = 0; i < total; i++) {
+        var pip = document.createElement('span');
+        pip.className = 'cc-pip';
+        pip.innerHTML = '<span class="cc-pipcap"></span>';
+        host.appendChild(pip);
+      }
+    }
+    var log = g.stage.log || [];
+    for (var k = 0; k < total; k++) {
+      var node = host.childNodes[k];
+      var cls = 'cc-pip';
+      var caption = '';
+      for (var j = 0; j < log.length; j++) {
+        if (log[j].i === k) {
+          cls += ' ' + log[j].outcome;
+          caption = (MORPH[log[j].morph] || '').slice(0, 3);
+        }
+      }
+      if (k === g.stage.index - 1) {
+        cls += ' cur';
+        caption = (MORPH[g.stage.morph] || '').slice(0, 3);
+      }
+      node.className = cls;
+      node.title = 'Stage ' + (k + 1) + (caption ? ' \u00b7 ' + caption : '');
+      node.firstChild.textContent = caption;
+    }
+  }
+
+  // ---- the 60 m track strip ---------------------------------------------
+  // The whole track at a glance, with the runner's marker, the finish gate and
+  // a GHOST MARKER for each resolved stage's final distance, so the ladder's
+  // progress is one picture. This is what replaces the dropped minimap.
+  function ccStrip(g) {
+    var strip = ccEl('cc-strip');
+    if (!strip) return;
+    var pct = Math.max(0, Math.min(100, (g.track.x / g.track.length) * 100));
+    strip.querySelector('.cc-strip-run').style.width = pct + '%';
+    strip.querySelector('.cc-strip-head').style.left = pct + '%';
+    var marks = g.track.marks || [];
+    var have = strip.querySelectorAll('.cc-strip-mark');
+    if (have.length !== marks.length) {
+      for (var d = 0; d < have.length; d++) have[d].remove();
+      for (var i = 0; i < marks.length; i++) {
+        var m = document.createElement('div');
+        m.className = 'cc-strip-mark ' + marks[i].outcome;
+        m.style.left =
+          Math.max(0, Math.min(100, (marks[i].x / g.track.length) * 100)) + '%';
+        m.title = 'stage ' + (marks[i].i + 1) + ' ended at ' +
+          marks[i].x.toFixed(1) + ' m';
+        strip.appendChild(m);
+      }
+    }
+  }
+
+  // ---- the gait card (the repurposed #fpv panel) ------------------------
+  // The gait name in large type, five labelled bars, and a PHASE WHEEL showing
+  // cycle_pct ticking round once per stride, so the order is visibly RUNNING
+  // rather than merely displayed. Everything it draws is a filled rectangle or
+  // an arc, never live text laid out at a computed coordinate, so nothing can
+  // land outside the canvas (--strict-text-bounds stays on).
+  function ccCard(g) {
+    var panel = ccEl('fpv'), canvas = ccEl('fpv-canvas');
+    if (!panel || !canvas) return;
+    panel.classList.add('cc-on');
+    var name = ccEl('fpv-name');
+    if (name) {
+      name.textContent = String(g.alias || 'ALPHA').toUpperCase() +
+        ' \u00b7 ' + (MORPH[g.stage.morph] || '');
+    }
+    var dpr = window.devicePixelRatio || 1;
+    var cssW = canvas.clientWidth || 84, cssH = canvas.clientHeight || 84;
+    var w = Math.max(1, Math.round(cssW * dpr));
+    var h = Math.max(1, Math.round(cssH * dpr));
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+    var c = canvas.getContext('2d');
+    c.clearRect(0, 0, w, h);
+    c.fillStyle = '#16110d';
+    c.fillRect(0, 0, w, h);
+    var pad = Math.round(w * 0.08);
+    var barH = Math.max(2, Math.round(h * 0.055));
+    var gap = Math.max(2, Math.round(h * 0.035));
+    var top = Math.round(h * 0.30);
+    // the gait name, drawn as a filled bar whose length keys the gait
+    var gaits = ['stand', 'crouch', 'walk', 'run', 'bound', 'brake'];
+    var gi = Math.max(0, gaits.indexOf(g.order.gait));
+    c.fillStyle = '#e8a33d';
+    c.fillRect(pad, Math.round(h * 0.12), Math.round((w - 2 * pad) *
+      ((gi + 1) / gaits.length)), Math.max(3, Math.round(h * 0.09)));
+    c.fillStyle = 'rgba(242,232,216,0.25)';
+    c.fillRect(pad, Math.round(h * 0.12), w - 2 * pad,
+      Math.max(3, Math.round(h * 0.09)));
+    c.fillStyle = '#e8a33d';
+    c.fillRect(pad, Math.round(h * 0.12), Math.round((w - 2 * pad) *
+      ((gi + 1) / gaits.length)), Math.max(3, Math.round(h * 0.09)));
+    for (var b = 0; b < BAR_KEYS.length; b++) {
+      var key = BAR_KEYS[b];
+      var value = g.order[key[0]] || 0;
+      var span = key[3] - key[2];
+      var frac = Math.max(0, Math.min(1, (value - key[2]) / span));
+      var y = top + b * (barH + gap);
+      c.fillStyle = 'rgba(242,232,216,0.18)';
+      c.fillRect(pad, y, w - 2 * pad, barH);
+      c.fillStyle = value < 0 ? '#e0523a' : '#45a85e';
+      c.fillRect(pad, y, Math.round((w - 2 * pad) * frac), barH);
+    }
+    // the phase wheel
+    var cx = w / 2, cy = h * 0.90, r = Math.max(3, h * 0.06);
+    c.strokeStyle = 'rgba(242,232,216,0.35)';
+    c.lineWidth = Math.max(1, dpr);
+    c.beginPath(); c.arc(cx, cy, r, 0, 6.2832); c.stroke();
+    var a = (g.order.cycle_pct / 100) * 6.2832 - 1.5708;
+    c.strokeStyle = '#e8a33d';
+    c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * r,
+      cy + Math.sin(a) * r); c.stroke();
+    panel.title = g.order.gait.toUpperCase() + ' \u00b7 cadence ' +
+      g.order.cadence + ' \u00b7 power ' + g.order.power + ' \u00b7 lean ' +
+      g.order.lean + ' \u00b7 stride bias ' + g.order.stride_bias +
+      ' \u00b7 phase shift ' + g.order.phase_shift;
+  }
+
+  // ---- the endcard -------------------------------------------------------
+  // It stops at var(--band) (the starter's own rule, kept) so the scrubber
+  // stays clickable underneath, and every seek dismisses it (the starter's
+  // `else { $('endcard').classList.remove('on'); }` path, kept).
+  function ccEndcard(s, g) {
+    var card = ccEl('endcard');
+    if (!card) return;
+    card.classList.add('on');
+    var head = ccEl('ec-headline');
+    if (head) {
+      head.className = 'headline ' + (g.win ? 'red' : 'draw');
+      head.textContent = 'RETURN ' + g.score['return'].toFixed(1);
+    }
+    var cond = ccEl('ec-wincond');
+    if (cond) {
+      cond.textContent = g.score.lined + ' OF ' + g.stage.of +
+        ' LINED OUT, ' + g.score.falls + ' FALL' +
+        (g.score.falls === 1 ? '' : 'S') + ', PAR ' +
+        g.score.par.toFixed(0) + (g.win ? ' MET' : ' MISSED');
+    }
+    var how = ccEl('ec-how');
+    if (how) {
+      var over = s.over || {};
+      how.textContent = (over.distance || 0).toFixed(1) + ' m covered, ' +
+        (over.upright || 0) + ' upright ticks, ' + (over.saturated || 0) +
+        ' saturated ticks, ' + g.score.fallbacks + ' fallback turn' +
+        (g.score.fallbacks === 1 ? '' : 's') + ' \u00b7 SCORE ' +
+        g.score['return'].toFixed(3);
+    }
+    var wrap = ccEl('ec-teams');
+    if (!wrap) return;
+    var key = 'cc|' + g.score['return'] + '|' + g.score.falls;
+    if (wrap.__key === key) return;
+    wrap.__key = key;
+    var html = '<div class="ec-team win" id="ec-team-alpha">' +
+      '<div class="ec-tname red" id="ec-tname-alpha">' + ccEscape(g.name) +
+      '</div>' +
+      '<div class="ec-lives"><span class="fl-num red" id="ec-alpha">' +
+      (g.stage.of - g.score.falls) +
+      '</span><span class="fl-cap">Stages standing</span></div>' +
+      '<div class="ec-thead"><span>Stage</span><span>Body</span>' +
+      '<span>Result</span><span>Distance</span><span>Return</span></div>' +
+      '<div id="ec-rows-alpha">';
+    var log = g.stage.log || [];
+    for (var i = 0; i < log.length; i++) {
+      html += '<div class="ec-row"><span class="n">' + (log[i].i + 1) +
+        '</span><span class="n">' + (MORPH[log[i].morph] || '') + '</span>' +
+        '<span class="n">' + log[i].outcome + '</span>' +
+        '<span class="n">' + log[i].distance.toFixed(1) + '</span>' +
+        '<span class="n">' + log[i]['return'].toFixed(1) + '</span></div>';
+    }
+    wrap.innerHTML = html + '</div></div>';
+  }
+
+  // ---- the match feed ----------------------------------------------------
+  // Plain language, never internal notation. Routed through the inherited
+  // pushFeed so the feed queue, its cap and its styling stay the starter's.
+  function ccFeed(text, cls) {
+    if (ctx && ctx.pushFeed) ctx.pushFeed(text, cls || '');
+  }
+
+  function ccOnEvent(e, s) {
+    var g = s.cc;
+    if (!g) return false;
+    switch (e.k) {
+      case 'stagestart':
+        ccFeed('STAGE ' + (e.i + 1) + ' OF ' + e.of + ' \u2014 ' +
+          (MORPH[e.morph] || '') + ', 60 M OF TRACK');
+        if (ctx && ctx.banner) {
+          ctx.banner('STAGE ' + (e.i + 1) + ' \u2014 ' + (MORPH[e.morph] || ''));
+        }
+        return true;
+      case 'order':
+        ccFeed('ORDER \u2014 ' + String(e.gait).toUpperCase() +
+          ', CADENCE ' + e.cadence + ', POWER ' + e.power + ', LEAN ' +
+          (e.lean >= 0 ? '+' : '') + e.lean);
+        return true;
+      case 'say':
+        ccFeed(g.alias + ': \u201c' + e.text + '\u201d', 'say');
+        return true;
+      case 'stride':
+        if (e.saturatedTicks > 6) {
+          ccFeed('JOINT PEGGED \u2014 ' + e.saturatedTicks +
+            ' TICKS AT FULL TORQUE');
+        }
+        return true;
+      case 'milestone':
+        ccFeed(e.metres + ' METRES');
+        return true;
+      case 'fall':
+        ccFeed('DOWN \u2014 ' + (MORPH[g.stage.morph] || '') + ' ' +
+          String(e.why).toUpperCase() + ' AT ' +
+          (e.x / 1000000).toFixed(1) + ' M', 'bad');
+        if (ctx && ctx.banner) {
+          ctx.banner('DOWN \u2014 ' + (MORPH[g.stage.morph] || '') + ' ' +
+            String(e.why).toUpperCase() + ' AT ' +
+            (e.x / 1000000).toFixed(1) + ' M');
+        }
+        return true;
+      case 'stageend':
+        if (e.outcome === 'lined') {
+          ccFeed('LINED OUT \u2014 60 M IN ' +
+            (e.ticks / 24).toFixed(1) + ' S', 'good');
+        } else {
+          ccFeed('STAGE ' + (e.i + 1) + ' DONE \u2014 ' +
+            (e.distance / 1000000).toFixed(1) + ' M, RETURN ' +
+            (e['return'] / 1000000).toFixed(1),
+            e.outcome === 'fell' ? 'bad' : 'good');
+        }
+        return true;
+      case 'fallback':
+        ccFeed('MISSED THE CALL \u2014 trotter order');
+        return true;
+      case 'budget':
+        ccFeed('BUDGET GUARD \u2014 SCRIPTED FROM TURN ' + e.turn);
+        return true;
+      case 'end':
+        ccFeed('FINAL \u2014 RETURN ' + (e.total / 1000000).toFixed(1) +
+          ', ' + e.stagesLined + ' LINED OUT, ' + e.falls + ' FALL' +
+          (e.falls === 1 ? '' : 'S'));
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  window.PaintballChrome = {
+    install: function (context) {
+      ctx = context;
+      ccEnsureNodes();
+    },
+    frame: function (s, context, jumped) {
+      ctx = context || ctx;
+      var g = s && s.cc;
+      if (!g) return;
+      try {
+        ccEnsureNodes();
+        ccDrawBeats(s);
+        ccPlate(s, g);
+        ccClock(s, g);
+        ccRibbon(g);
+        ccPips(g);
+        ccStrip(g);
+        ccCard(g);
+        if (s.ph === 'gameover') ccEndcard(s, g);
+      } catch (err) {
+        // A chrome error must never latch static_replay.js into `failed`
+        // mid-replay (the cogball 0.1.4 scar): report it and keep drawing.
+        if (window.console) console.error('continuous-control chrome:', err);
+      }
+    },
+    event: function (e, s, context) {
+      ctx = context || ctx;
+      try {
+        return ccOnEvent(e, s);
+      } catch (err) {
+        if (window.console) console.error('continuous-control chrome event:', err);
+        return false;
+      }
+    }
+  };
+})();
+</script>
+</body>
+</html>

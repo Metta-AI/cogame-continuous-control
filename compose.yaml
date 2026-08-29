@@ -1,0 +1,18 @@
+# ONE service, named for the coworld, so the manifest placeholder is
+# {{CONTINUOUS_CONTROL_IMAGE}} (placeholders derive from COMPOSE SERVICE NAMES
+# by uppercasing and replacing "-" with "_"; {{GAME_IMAGE}} is not a thing
+# outside a two-service file — cogame-lantern 0.1.0).
+#
+# ONE image, TWO entrypoints: /bin/continuous-control (the game server, which
+# also makes every LLM call) and /bin/continuous-control-player (the thin seat
+# registrar). The whole policy set is env-switched inside this same image
+# (PLAYER_PROMPT vs PLAYER_SCRIPTED=trotter|plodder), which is what keeps a
+# champion and a scripted filler byte-identical apart from their environment.
+services:
+  continuous-control:
+    image: coworld-continuous-control:latest
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host

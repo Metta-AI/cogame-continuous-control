@@ -1,0 +1,35 @@
+[
+  {
+    "name": "continuous-control-gaitsmith",
+    "run": "/bin/continuous-control-player",
+    "env": {
+      "PLAYER_PROMPT": "Tune, do not thrash. Every machine has one cadence/power pair that works, and\nyour job is to find it in two turns and then hold it.\nTURN 1 OF EVERY STAGE, always the same: {\"gait\":\"crouch\",\"cadence\":0,\n\"power\":45,\"lean\":0}. You get the feet planted, you see the joint limits and\nthe real torque numbers, and you lose at most one and a half seconds. A machine\nthat starts running before it has stood up falls before it moves.\nTURN 2: start conservative and identical for every body -\n{\"gait\":\"walk\",\"cadence\":45,\"power\":60,\"lean\":6}. Read what comes back.\nTHEN, every turn, apply these corrections IN THIS ORDER and change ONE thing:\n1. If last_turn.fell is impossible for this body, skip to 3. Otherwise, if\n   torso pitch_deg is within 6 degrees of the fall limit, send\n   {\"gait\":\"brake\",\"cadence\":30,\"power\":50,\"lean\":-10} for exactly one turn.\n   Nothing else. Then resume the gait you had, minus 10 lean.\n2. If any joint reports saturated true, drop power by 12. A pegged joint is not\n   producing more force, it is producing more cost.\n3. If a foot reports slip_m_s above 0.5, drop cadence by 8. The foot is\n   skating and every skating stride is distance you did not get.\n4. If distance_m for the last turn is under 0.6 m and strides is above 2, you\n   are running on the spot: add 8 lean, up to +30.\n5. Otherwise, if nothing above fired, add 5 cadence, up to the point where rule\n   3 fires. Then stop and hold.\nGait selection: hopper -> bound once cadence is above 55, walk below it.\nCheetah -> run always, and stride_bias +6 (its front leg is the weak one).\nWalker -> walk until mean_vx_m_s passes 1.2, then run.\nNever send power above 90 on any body. Never send lean above +30 on a walker.\nUse phase_shift only on the turn you change gait, and only 25 or -25.\nWhen to_line_m is under 4 m, add 10 lean and 10 power and take the line.",
+      "PLAYER_POLICY_LABEL": "gaitsmith"
+    }
+  },
+  {
+    "name": "continuous-control-throttle",
+    "run": "/bin/continuous-control-player",
+    "env": {
+      "PLAYER_PROMPT": "Distance is the only thing that pays. Upright bonus is under two points a\nstage and control cost is under half a point; metres are twenty. So the plan is\nalways: reach the fastest gait this body will survive, as early as possible,\nand stay in it.\nOpen every stage with {\"gait\":\"walk\",\"cadence\":55,\"power\":75,\"lean\":10} - one\nturn, not two. On the cheetah open with {\"gait\":\"run\",\"cadence\":65,\"power\":85,\n\"lean\":14} instead, because the cheetah cannot fall and every cautious turn on\nit is two metres thrown away.\nThen RAMP. Each turn add 6 cadence and 5 power, up to cadence 88 and power 88,\nuntil one of these three stops you:\n  - a joint reports saturated: hold power where it is and keep ramping cadence.\n  - a foot slips above 0.7 m/s: hold cadence where it is and keep ramping power.\n  - the last turn's distance went DOWN: you have passed the peak. Step both\n    back to the previous turn's values and hold them for the rest of the stage.\nFalls: on the hopper and the walker only, if pitch_deg is within 4 degrees of\nthe limit OR torso height is within 0.05 m of the floor, send exactly\n{\"gait\":\"brake\",\"cadence\":20,\"power\":40,\"lean\":-15} once, then come back at the\nvalues you had minus 6 cadence. Do not brake twice in a row - two brakes in a\nrow is a policy that has stopped racing.\nSay the numbers out loud in \"say\" so a spectator can follow the ramp, e.g.\n\"cadence 74 power 83, front foot holding\". Keep the last working pair in\n\"notes\" so a fallback turn does not lose it.\nNever send stand. Never send crouch after the first turn of a stage. Never let\npower exceed cadence by more than 25 - that combination saturates every joint\non every body in this game.",
+      "PLAYER_POLICY_LABEL": "throttle"
+    },
+    "player": "ply_bac48eb1-662e-44f8-973d-f3e016dccf5d"
+  },
+  {
+    "name": "continuous-control-trotter",
+    "run": "/bin/continuous-control-player",
+    "env": {
+      "PLAYER_SCRIPTED": "trotter",
+      "PLAYER_POLICY_LABEL": "trotter"
+    }
+  },
+  {
+    "name": "continuous-control-plodder",
+    "run": "/bin/continuous-control-player",
+    "env": {
+      "PLAYER_SCRIPTED": "plodder",
+      "PLAYER_POLICY_LABEL": "plodder"
+    }
+  }
+]

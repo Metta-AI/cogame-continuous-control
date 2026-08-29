@@ -1,0 +1,11 @@
+# Every string this game can draw ON THE BOARD, one per line.
+# `tests/test_cc_viewer.nim` asserts the emitted vocabulary equals this list
+# exactly. `showPlayerLabels` is false, so the cog's own ALIAS is the only name
+# the board can carry and the real policy name lives spectator-side only.
+ALPHA
+HOPPER
+CHEETAH
+WALKER
+START
+FINISH
+GAIT ORDER
