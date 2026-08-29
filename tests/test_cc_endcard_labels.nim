@@ -42,13 +42,21 @@ suite "the spectator vocabulary is this game's, not paintbot's":
     ## block rewrites rather than renames) and `team` (the inherited chrome's
     ## own class names, `team-name` / `ec-team*`). Everything else is the
     ## note's token, not a narrower substitute.
+    ##
+    ## The note scopes this grep to the built page AND `broadcast_core.js`
+    ## (design.md §Viewer), which is the forked draw layer this game rewrote:
+    ## both are read here, each with its comment tails stripped, so a paintbot
+    ## word re-entering through the draw layer is caught too.
     var offenders: seq[string] = @[]
     let visible = stripJsComments("<!--" & blockText)
+    let visibleCore = stripJsComments(core)
     for word in ["Lives", "LIVES", "Clstr", "Cap<", "flagicon", "heart",
                  "paint", "hoppers", "hill", "POV", "EYES", "spray",
                  "grenade", "med kit", "kill", "squad-pip"]:
       if word in visible:
         offenders.add("block: " & word)
+      if word in visibleCore:
+        offenders.add("broadcast_core.js: " & word)
     check offenders.len == 0
 
   test "47c. each re-mapped string is present":
