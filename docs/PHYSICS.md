@@ -101,6 +101,44 @@ and every joint constraint is a 2x2 linear solve. `isqrtQ16` exists in
     OSCILLATION CENTRE of a moving body; the pose a stiff PD servo genuinely
     holds at rest is `q = 0`. They are different numbers and the table carries
     both.
+11. **`crouch` is the SHALLOWEST QUIET pose, not the deepest survivable one.**
+    A deeper crouch exists on both terminating bodies and is survivable, but it
+    ROCKS to within a whisker of the fall limit, which turns `trotter`'s settle
+    turn into the thing that ends the stage. The shipped pose is the deepest
+    one whose torso pitch stays under 0.05 rad (0.03 on the walker) for 220
+    ticks at `power 40` — hopper hip -0.050 / knee -0.500 / ankle +0.500 rad,
+    torso 1.14 m; walker knee -0.200 / ankle +0.200 rad, torso 1.20 m
+    (`src/cc/gaits.nim`).
+12. **A seek REWINDS AND RE-STEPS from tick 0**, rather than restoring the
+    nearest state keyframe. A keyframe carries the link state and nothing else,
+    so resuming from one would leave `stageTick`, `cyclePos` and every
+    accumulator behind and diverge the hash chain from the very next tick.
+    1 512 ticks of a 120-pass integer solver is ~0.4 s natively and about a
+    second in wasm32, which a scrubber click can afford; a wrong resume cannot
+    be afforded (`src/cc/replay_runtime.nim`). Keyframes are kept for what they
+    are worth as: a per-tick CROSS-CHECK and the pre-scan's cheap track read.
+13. **The tuning gate COMPARES the committed pick; it does not re-run the
+    search.** `tools/tune_gaits.nim --check` and `tools/tune_baselines.nim
+    --check` assert the shipped `GaitTable` and `BaselineParams` still equal
+    `tools/ci/gait_tuning.json` and `tools/ci/baseline_tuning.json`. Re-running
+    either search in CI takes minutes to reproduce a number that is already
+    committed; `tests/test_cc_tuning.nim` asserts the same equality from inside
+    the suite.
+14. **`tools/wasm_replay_smoke.cjs` is not wired into CI, and test 48 lives in
+    `tests/test_cc_viewer.nim`.** The wasm bundle is exercised by
+    `tools/ci/viewer_smoke.mjs` in headless chromium — the gate that actually
+    matters, because it loads the real bundle and the real replay — so the
+    node-side smoke is kept as a developer tool rather than a second gate over
+    the same ground. The label-vocabulary test the note numbers 48 is a viewer
+    test and is folded into the viewer suite rather than given a file of its
+    own.
+15. **The replay is about 130 KB, not the ~32 KB the note estimated.** Every
+    per-turn `order` chat record carries the whole observation the decision was
+    made from (`record["view"]`, the view minus `last_turn.notes`), which the
+    note's own record vocabulary requires and which is what makes the replay
+    explain each decision; it is bounded at `MaxOrderRecordRunes = 6000` per
+    record and the view is dropped rather than truncated if a record exceeds
+    it. The CI smoke's own figure is 132 082 B for a full three-stage episode.
 
 ## The committed morphology table
 
