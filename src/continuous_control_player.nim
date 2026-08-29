@@ -71,6 +71,22 @@ when isMainModule:
     except CatchableError as error:
       echo "continuous-control player: registration send failed: ", error.msg
 
+  proc ackFrame() =
+    ## The Sprite v1 player-ready packet (0x85), after every frame, exactly as
+    ## `src/paintball_player.nim` does. Legitimate here for the same reason it
+    ## is there: this seat sends NO inputs — the server computes every joint
+    ## target — so the dead-reckoning hazard `docs/PROTOCOL.md` warns about
+    ## cannot arise. Nothing in this game WAITS on it (`fastMode: true`, and
+    ## the server's websocket handler only reads registration chat and Pings),
+    ## so a failed ack is never fatal: the send is guarded and the receive loop
+    ## decides when the socket is done.
+    var ready = newString(1)
+    ready[0] = char(0x85)
+    try:
+      socket.send(ready, BinaryMessage)
+    except CatchableError:
+      discard
+
   sendRegistration()
   echo "continuous-control player: registered (", prompt.len, " prompt chars",
     (if scripted.len > 0: ", scripted " & scripted else: ", llm"), ")"
@@ -95,6 +111,7 @@ when isMainModule:
       break
     if epochTime() - started < ReRegisterSeconds:
       sendRegistration()
+    ackFrame()
     let message = received.get()
     if message.kind != TextMessage:
       continue
