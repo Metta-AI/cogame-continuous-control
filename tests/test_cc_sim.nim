@@ -351,6 +351,40 @@ suite "the tick loop":
           if why != want: inc wrong
     check not cheetahFell
     check wrong == 0
+    ## The sweep above re-derives `isUnhealthy` from the SAME spec fields it is
+    ## testing, so it passes for any values of them. The design note's own
+    ## limits are therefore pinned as literals here: hopper `y < 0.70 m` or
+    ## `|pitch| > 20 deg`, walker `y` outside `0.80 .. 2.00 m` or
+    ## `|pitch| > 57 deg`, cheetah never (design.md, "Falling"). `highY` on the
+    ## hopper is the sim's world-box ceiling, which is a guard and not a fall
+    ## condition — it is pinned as such.
+    proc mmQ(value: int64): int64 = (value * OneQ16) div 1000
+    check spec(mHopper).terminates
+    check spec(mHopper).lowY == mmQ(700)
+    check spec(mHopper).maxPitch == degQ16(20)
+    check spec(mHopper).highY == GuardMaxYQ16
+    check spec(mWalker).terminates
+    check spec(mWalker).lowY == mmQ(800)
+    check spec(mWalker).highY == mmQ(2000)
+    check spec(mWalker).maxPitch == degQ16(57)
+    check not spec(mCheetah).terminates
+    ## and each branch fires at its own limit. The hopper's `fwHigh` sits at
+    ## 20 m, outside the sweep's sampled band, so it is exercised here rather
+    ## than left to a random draw that can never reach it.
+    for morph in [mHopper, mWalker]:
+      checkpoint($morph)
+      let s = spec(morph)
+      var perturb: array[MaxJoints, int32]
+      var body = buildStartPose(4242, 0, morph, perturb)
+      body.links[0].a = wrapAngle(s.rootAngle)
+      body.links[0].y = s.lowY - 1
+      check body.isUnhealthy(s) == fwLow
+      body.links[0].y = s.highY + 1
+      check body.isUnhealthy(s) == fwHigh
+      body.links[0].y = (s.lowY + s.highY) div 2
+      check body.isUnhealthy(s) == fwNone
+      body.links[0].a = wrapAngle(s.rootAngle + s.maxPitch + OneQ16 div 100)
+      check body.isUnhealthy(s) == fwPitched
 
   test "12. the line resolves `lined` at exactly 60.000 m":
     let config = ladderConfig(@[mCheetah, mCheetah, mCheetah], 5)
