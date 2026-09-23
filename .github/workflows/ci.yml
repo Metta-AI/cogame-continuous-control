@@ -162,6 +162,12 @@ jobs:
           done
           exit "${fail}"
 
+      - name: Numeric training bridge
+        run: |
+          set -euo pipefail
+          nim c -d:release --path:src -o:/tmp/cc-train-bridge tools/train_bridge.nim
+          python3 tools/test_train_bridge.py /tmp/cc-train-bridge
+
   # ---------------------------------------------------------------------
   # Packaging smoke: the production image builds, and one real episode runs
   # end to end in raw docker with the certification fixture's seat mix.
