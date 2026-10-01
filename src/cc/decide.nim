@@ -240,7 +240,7 @@ proc turn*(engine: var DecisionEngine, sim: SimServer, turnIndex: int,
       user.add("\n\nYour previous reply was not usable. Reply with ONLY the " &
         "JSON object described above, starting with '{'.")
     let request = engine.client.requestFor(
-      SystemPrompt, userMessage(engine.seats[seat].prompt, user))
+      SystemPrompt, userMessage(engine.seats[seat].prompt, user), seat)
     ## ONE seat, so this is a BATCH OF ONE through the starter's unchanged
     ## batching path. The code is the starter's; the batch simply carries one
     ## request.

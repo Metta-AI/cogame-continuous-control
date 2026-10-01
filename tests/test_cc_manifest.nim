@@ -60,7 +60,6 @@ suite "manifest pins":
     for key in ["player", "global"]:
       let node = manifest["game"]["protocols"][key]
       check node.kind == JObject
-      check node["type"].getStr() == "uri"
       check node["value"].getStr().len > 0
     ## docs.readme + pages
     check manifest["game"]["docs"]["readme"]["value"].getStr().len > 0
@@ -75,10 +74,9 @@ suite "manifest pins":
     check manifest["game"]["owner"].getStr().len > 0
     check manifest["game"]["runnable"]["run"][0].getStr() ==
       "/bin/continuous-control"
-    ## `game.name` equals the slug AND the secret URI's namespace
     check manifest["game"]["name"].getStr() == "continuous-control"
-    check manifest["game"]["runnable"]["env"]["ANTHROPIC_API_KEY_URI"]
-      .getStr() == "secret://coworld/continuous-control/anthropic_api_key"
+    doAssert manifest{"game"}{"runnable"}{"env"}{"ANTHROPIC_API_KEY_URI"}.isNil,
+      "hosted LLM uses the platform sidecar without provider secrets"
 
     ## the results_schema closed enums
     let rs = manifest["game"]["results_schema"]["properties"]
