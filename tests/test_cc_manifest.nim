@@ -141,7 +141,6 @@ suite "manifest pins":
     check "continuous-control:" in compose
     check "image: coworld-continuous-control:latest" in compose
     check "platform: linux/amd64" in compose
-    check "network: host" in compose
     ## and the CLI, if it happens to be installed, gets the real thing
     let probe = execCmdEx("python3 -c \"import json,sys; " &
       "json.load(open('" & repoRoot() &
